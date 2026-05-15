@@ -4,9 +4,6 @@ import { Salutation } from './Salutation'
 import { KPICards } from './KPICards'
 import { BusinessModules } from './BusinessModules'
 import { PerformanceOverview } from './PerformanceOverview'
-import { RecentEvents } from './RecentEvents'
-import { EventStories } from './EventStories'
-import { PendingPayRequests } from './PendingPayRequests'
 
 interface DashboardProps {
   user: AppUser
@@ -68,9 +65,30 @@ export function Dashboard({ user, setActive }: DashboardProps) {
     { label: 'Contingency', amount: 'KES 700K', percent: '16%', color: '#ef4444' },
   ]
 
+  const viewEvents = () => setActive('events')
+
   return (
     <div className="animate-fade-in">
       <Salutation firstName={firstName} dateLabel={dateLabel} />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
+        <button
+          type="button"
+          onClick={viewEvents}
+          style={{
+            border: 'none',
+            background: '#111',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: 14,
+            cursor: 'pointer',
+            fontWeight: 600,
+            boxShadow: '0 18px 35px rgba(0,0,0,0.12)',
+          }}
+        >
+          Browse events
+        </button>
+      </div>
       
       <BusinessModules modules={businessModules} />
       <KPICards cards={kpiCards} />

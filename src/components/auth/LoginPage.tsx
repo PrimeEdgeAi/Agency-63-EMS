@@ -6,13 +6,6 @@ interface LoginPageProps {
   onLogin: (user: AppUser) => void
 }
 
-const BRAND_STATS = [
-  { n: '14',    l: 'Active Events' },
-  { n: '2,400+', l: 'Attendees Managed' },
-  { n: 'KES 4M', l: 'Budget Tracked' },
-  { n: '98%',  l: 'Client Satisfaction' },
-]
-
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
