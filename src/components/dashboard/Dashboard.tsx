@@ -1,6 +1,6 @@
+import { FiBell, FiSearch } from 'react-icons/fi'
 import type { PageId, AppUser } from '../../types'
 import { EVENTS_DATA, PAY_REQUESTS } from '../../data'
-import { Salutation } from './Salutation'
 import { KPICards } from './KPICards'
 import { BusinessModules } from './BusinessModules'
 import { PerformanceOverview } from './PerformanceOverview'
@@ -68,41 +68,208 @@ export function Dashboard({ user, setActive }: DashboardProps) {
   const viewEvents = () => setActive('events')
 
   return (
-    <div className="animate-fade-in">
-      <Salutation firstName={firstName} dateLabel={dateLabel} />
+    <div className="animate-fade-in" style={{ padding: 20 }}>
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+          background: 'linear-gradient(135deg, #243c8f 0%, #0f172a 100%)',
+          color: 'white',
+          borderRadius: 24,
+          padding: '22px 24px',
+          boxShadow: '0 24px 58px rgba(15, 23, 42, 0.18)',
+          marginBottom: 24,
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 640 }}>
+            <div style={{ textTransform: 'uppercase', letterSpacing: 1.8, fontSize: 11, opacity: 0.75, marginBottom: 12 }}>
+              Dashboard
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: -0.8, lineHeight: 1.05 }}>
+                Hi {firstName}, welcome back
+              </h1>
+              <div
+                style={{
+                  whiteSpace: 'nowrap',
+                  padding: '10px 14px',
+                  borderRadius: 16,
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.9)',
+                }}
+              >
+                {dateLabel}
+              </div>
+            </div>
+            <p style={{ margin: '14px 0 0', color: 'rgba(255,255,255,0.78)', maxWidth: 560, fontSize: 14 }}>
+              Events, budgets, and alerts are all visible in one clean workspace.
+            </p>
+          </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-        <button
-          type="button"
-          onClick={viewEvents}
-          style={{
-            border: 'none',
-            background: '#111',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: 14,
-            cursor: 'pointer',
-            fontWeight: 600,
-            boxShadow: '0 18px 35px rgba(0,0,0,0.12)',
-          }}
-        >
-          Browse events
-        </button>
-      </div>
-      
-      <BusinessModules modules={businessModules} />
-      <KPICards cards={kpiCards} />
-      <PerformanceOverview targetMetrics={targetMetrics} budgetLines={budgetLines} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.08)',
+                padding: '12px 16px',
+                color: 'white',
+                minWidth: 220,
+                flex: '1 1 220px',
+              }}
+            >
+              <FiSearch size={16} />
+              <input
+                type="search"
+                placeholder="Search events, vendors, budgets..."
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  color: 'white',
+                  width: '100%',
+                  fontSize: 13,
+                }}
+              />
+            </div>
 
-      
-      {/* <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
-        <RecentEvents events={EVENTS_DATA} setActive={setActive} />
+            <button
+              type="button"
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.08)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <FiBell size={18} />
+            </button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <EventStories events={EVENTS_DATA} />
-          <PendingPayRequests requests={PAY_REQUESTS} setActive={setActive} />
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                borderRadius: 18,
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                padding: '10px 14px',
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  background: 'white',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                {firstName[0] ?? 'A'}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{firstName}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Profile</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div> */}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>
+          <button
+            type="button"
+            style={{
+              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'rgba(255,255,255,0.08)',
+              color: 'white',
+              padding: '11px 18px',
+              cursor: 'pointer',
+              borderRadius: 14,
+              fontWeight: 700,
+            }}
+          >
+            Export Report
+          </button>
+
+          <button
+            type="button"
+            onClick={viewEvents}
+            style={{
+              border: 'none',
+              background: '#60a5fa',
+              color: 'white',
+              padding: '11px 18px',
+              cursor: 'pointer',
+              borderRadius: 14,
+              fontWeight: 700,
+            }}
+          >
+            Browse Events
+          </button>
+
+          <div
+            style={{
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.88)',
+              padding: '10px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            4 active business modules
+          </div>
+
+          <div
+            style={{
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.88)',
+              padding: '10px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            {upcoming} upcoming events
+          </div>
+
+          <div
+            style={{
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.88)',
+              padding: '10px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            {pendingPay} awaiting approval
+          </div>
+        </div>
+      </div>
+
+      <KPICards cards={kpiCards} />
+      <BusinessModules modules={businessModules} />
+      <PerformanceOverview targetMetrics={targetMetrics} budgetLines={budgetLines} />
     </div>
   )
 }

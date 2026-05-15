@@ -231,7 +231,7 @@ export function Card({ children, style, onClick, hover }: CardProps) {
       style={{
         background: 'white',
         borderRadius: 0,
-        border: hovered ? '1px solid #c7d3e5' : '1px solid #e5e5e5',
+        // border: hovered ?  : '1px solid #e5e5e5',
         cursor: onClick ? 'pointer' : undefined,
         transition: 'all 0.2s',
         transform: hovered ? 'translateY(-1px)' : undefined,

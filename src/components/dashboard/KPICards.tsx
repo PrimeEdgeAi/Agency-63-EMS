@@ -37,16 +37,15 @@ export function KPICards({ cards }: KPICardsProps) {
             key={k.label}
             style={{
               padding: 24,
-              background: accent,
-              color: 'white',
+              borderTop: `4px solid ${accent}`,
             }}
           >
             <div
               style={{
                 width: 42,
                 height: 42,
-                background: 'rgba(255,255,255,0.2)',
-                color: 'white',
+                background: `${accent}1a`,
+                color: accent,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -56,11 +55,11 @@ export function KPICards({ cards }: KPICardsProps) {
             >
               <Icon />
             </div>
-            <div style={{ fontSize: 30, fontWeight: 700, color: 'white', letterSpacing: -1, marginBottom: 4 }}>
+            <div style={{ fontSize: 30, fontWeight: 700, color: '#111', letterSpacing: -1, marginBottom: 4 }}>
               {k.value}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{k.label}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', marginTop: 6 }}>{k.sub}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{k.label}</div>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>{k.sub}</div>
           </Card>
         )
       })}
