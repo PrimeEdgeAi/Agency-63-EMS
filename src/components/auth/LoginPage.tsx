@@ -60,7 +60,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           }}
         >
           <img
-            src="/images.jpg"
+            src="./images.jpg"
             alt="EventPortal logo"
             style={{
               width: 110,
