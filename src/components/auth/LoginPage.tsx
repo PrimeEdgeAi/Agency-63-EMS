@@ -15,7 +15,7 @@ const handleGoogleLogin = async () => {
     setLoading(true)
     setError('')
     try {
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({ 
+      const { error: authError } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
           // Point back to your deployed GitHub pages site or local test setup
