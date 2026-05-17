@@ -11,22 +11,25 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError]       = useState('')
   const [btnHovered, setBtnHov] = useState(false)
 
-  const handleGoogleLogin = async () => {
+const handleGoogleLogin = async () => {
     setLoading(true)
     setError('')
     try {
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({ provider: 'google' })
+      const { data, error: authError } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          // Point back to your deployed GitHub pages site or local test setup
+          redirectTo: window.location.origin 
+        }
+      })
       if (authError) {
         setError(authError.message)
         setLoading(false)
         return
       }
-      if (data.user) {
-        onLogin(data.user)
-      } else {
-        setError('Access denied. Your email is not on the approved list.')
-        setLoading(false)
-      }
+      
+      // Note: OAuth handles sign-in via browser redirects. 
+      // Supabase triggers a page change rather than providing data.user immediately here.
     } catch {
       setError('Authentication failed. Please try again.')
       setLoading(false)

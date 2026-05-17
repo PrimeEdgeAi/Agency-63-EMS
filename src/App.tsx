@@ -22,6 +22,8 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
+      //help fix the error above
+      
       setLoading(false)
     })
   }, [])
