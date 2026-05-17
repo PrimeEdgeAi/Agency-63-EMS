@@ -71,5 +71,14 @@ export default defineConfig([
   },
 ])
 ```
+
+## Sidebar implementation notes
+
+- `src/components/layout/Sidebar.tsx` has been rebuilt to match the sidebar structure and dark theme of the shared design.
+- The navigation list is currently static in `NAV`, but this should be replaced with backend/API data when the menu is available.
+- User metadata such as `user.user_metadata.full_name` and `user.email` are displayed here and should remain synced to your authentication/profile API.
+- The search box is placeholder UI now; connect it to a backend search endpoint such as `/api/search` when ready.
+- Keep `src/App.tsx` margin-left aligned with the sidebar width (`280px`) so page content does not overlap.
+
 # Agency-63-EMS
 # Agency-63-EMS

@@ -11,6 +11,8 @@ import { ReccePage } from './components/recce/ReccePage'
 import { PayRequestPage } from './components/finance/PayRequestPage'
 import { SettingsPage } from './components/settings/SettingsPage'
 import { HelpPage } from './components/help/HelpPage'
+import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
+import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 
 export default function App() {
   const [user,    setUser]    = useState<AppUser | null>(null)
@@ -36,7 +38,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#eef4ff' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
-      <main style={{ marginLeft: 240, flex: 1, padding: '48px 52px', minHeight: '100vh' }}>
+      <main style={{ marginLeft: 280, flex: 1, padding: '48px 52px', minHeight: '100vh' }}>
         <PageRouter active={active} setActive={setActive} user={user} />
       </main>
     </div>
@@ -57,6 +59,8 @@ function PageRouter({ active, setActive, user }: RouterProps) {
     case 'payrequest': return <PayRequestPage />
     case 'settings':   return <SettingsPage user={user} />
     case 'help':       return <HelpPage />
+    case 'NonAlcoholic': return <NonAlcoholic />
+    case 'Alcoholic': return <Alcoholic />
     default:           return <Dashboard user={user} setActive={setActive} />
   }
 }

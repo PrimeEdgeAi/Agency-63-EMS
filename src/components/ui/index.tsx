@@ -225,6 +225,7 @@ export function Card({ children, style, onClick, hover }: CardProps) {
   const [hovered, setHovered] = React.useState(false)
   return (
     <div
+      className='transition-all, duration-200 ease-in-out shadow-lg'
       onClick={onClick}
       onMouseEnter={() => hover && setHovered(true)}
       onMouseLeave={() => hover && setHovered(false)}
@@ -235,7 +236,7 @@ export function Card({ children, style, onClick, hover }: CardProps) {
         cursor: onClick ? 'pointer' : undefined,
         transition: 'all 0.2s',
         transform: hovered ? 'translateY(-1px)' : undefined,
-        boxShadow: 'none',
+        // boxShadow: 'none',
         ...style,
       }}
     >

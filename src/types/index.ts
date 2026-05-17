@@ -17,7 +17,7 @@ export type PageId =
   | 'UniCorns'
   | 'One Off'
   | 'Alcoholic'
-  | 'Non Alcoholic'
+  | 'NonAlcoholic'
   | 'Pay Requests'
   | 'Target'
   | 'Reports'

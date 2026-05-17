@@ -28,7 +28,7 @@ const NAV: NavSection[] = [
       { id: 'UniCorns', label: 'UniCorns', icon: <FiStar /> },
       { id: 'One Off', label: 'One Off', icon: <FiZap /> },
       { id: 'Alcoholic', label: 'Alcoholic', icon: <FiCoffee /> },
-      { id: 'Non Alcoholic', label: 'Non Alcoholic', icon: <FiDroplet /> },
+      { id: 'NonAlcoholic', label: 'Non Alcoholic', icon: <FiDroplet /> }
     ],
   },
 
