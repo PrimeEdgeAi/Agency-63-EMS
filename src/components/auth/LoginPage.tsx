@@ -6,7 +6,7 @@ interface LoginPageProps {
   onLogin: (user: AppUser) => void
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ }: LoginPageProps) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [btnHovered, setBtnHov] = useState(false)

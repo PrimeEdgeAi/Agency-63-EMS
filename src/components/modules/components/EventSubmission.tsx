@@ -1,0 +1,252 @@
+import { useState } from 'react'
+import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
+
+const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/your-webhook-id' // 🔗 Replace with your n8n URL
+
+const STATUS_OPTIONS = [
+  'Project Creation',
+  'Project Update',
+]
+
+const label = (text: string, required = false) => (
+  <div style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#888', marginBottom: 6, fontWeight: 500 }}>
+    {text}{required && <span style={{ color: '#e74c3c', marginLeft: 3 }}>*</span>}
+  </div>
+)
+
+const input = {
+  width: '100%',
+  fontSize: 13,
+  padding: '9px 12px',
+  borderRadius: 8,
+  border: '0.5px solid rgba(0,0,0,0.15)',
+  background: '#fff',
+  color: '#111',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+}
+
+const sectionTitle = (text: string) => (
+  <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#bbb', fontWeight: 600, marginBottom: 14, paddingBottom: 6, borderBottom: '0.5px solid rgba(0,0,0,0.07)' }}>
+    {text}
+  </div>
+)
+
+type Assistant = { name: string; email: string }
+
+type Props = {
+  companyName: string
+  onBack: () => void
+}
+
+export function EventSubmission({ companyName, onBack }: Props) {
+  const [client, setClient] = useState('')
+  const [status, setStatus] = useState('')
+  const [description, setDescription] = useState('')
+  const [clientLead, setClientLead] = useState('')
+  const [projectLead, setProjectLead] = useState('')
+  const [email, setEmail] = useState('')
+  const [assistants, setAssistants] = useState<Assistant[]>([])
+  const [location, setLocation] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+
+  const addAssistant = () => setAssistants((prev) => [...prev, { name: '', email: '' }])
+  const removeAssistant = (i: number) => setAssistants((prev) => prev.filter((_, idx) => idx !== i))
+  const updateAssistant = (i: number, field: keyof Assistant, value: string) =>
+    setAssistants((prev) => prev.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)))
+
+  const handleSubmit = async () => {
+    if (!client || !status || !description || !clientLead || !projectLead || !email || !location || !startDate || !endDate) {
+      setError('Please fill in all required fields.')
+      return
+    }
+    setError('')
+    setSubmitting(true)
+    try {
+      await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company: companyName,
+          client,
+          status,
+          description,
+          clientLead,
+          projectLead,
+          email,
+          assistants,
+          location,
+          startDate,
+          endDate,
+          submittedAt: new Date().toISOString(),
+        }),
+      })
+      setSubmitted(true)
+    } catch {
+      setError('Submission failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // ── Success state ──
+  if (submitted) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-md" style={{ textAlign: 'center', padding: '3rem' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: '#111', marginBottom: 6 }}>Event submitted</div>
+        <div style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Your event has been sent for approval.</div>
+        <button
+          onClick={() => { setSubmitted(false); setClient(''); setStatus(''); setDescription(''); setClientLead(''); setProjectLead(''); setEmail(''); setAssistants([]); setLocation(''); setStartDate(''); setEndDate(''); }}
+          style={{ fontSize: 13, padding: '8px 20px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', color: '#333', cursor: 'pointer', marginRight: 8 }}
+        >
+          Submit another
+        </button>
+        <button
+          onClick={onBack}
+          style={{ fontSize: 13, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer' }}
+        >
+          Back to menu
+        </button>
+      </div>
+    )
+  }
+
+  // ── Form ──
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-md">
+
+      {/* Page header */}
+      <button
+        type="button"
+        onClick={onBack}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#777', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 20 }}
+      >
+        <FiArrowLeft /> Back
+      </button>
+
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa', marginBottom: 4 }}>
+          {companyName}
+        </div>
+        <h2 className="text-2xl font-bold">
+          Event <span style={{ color: '#3b7dd8', fontStyle: 'italic' }}>Submission</span>
+        </h2>
+        <p className="text-gray-500 mt-1" style={{ fontSize: 13 }}>Submit a new event for approval or update an existing one.</p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+        {/* EVENT INFO */}
+        <section>
+          {sectionTitle('Event Info')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              {label('Client', true)}
+              <input style={input} placeholder="e.g. Jumia" value={client} onChange={(e) => setClient(e.target.value)} />
+            </div>
+            <div>
+              {label('Status', true)}
+              <select style={{ ...input }} value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="">Select status…</option>
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              {label('Description', true)}
+              <textarea
+                style={{ ...input, minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="e.g. KCB VS Police FC"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* CONTACTS */}
+        <section>
+          {sectionTitle('Contacts')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              {label('Client Lead', true)}
+              <input style={input} placeholder="Name" value={clientLead} onChange={(e) => setClientLead(e.target.value)} />
+            </div>
+            <div>
+              {label('Project Lead', true)}
+              <input style={input} placeholder="Name" value={projectLead} onChange={(e) => setProjectLead(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            {label('Email', true)}
+            <input style={input} type="email" placeholder="kmongare4@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+        </section>
+
+        {/* PROJECT ASSISTANTS */}
+        <section>
+          {sectionTitle('Project Assistants')}
+          {assistants.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+              {assistants.map((a, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
+                  <input style={input} placeholder="Name" value={a.name} onChange={(e) => updateAssistant(i, 'name', e.target.value)} />
+                  <input style={input} type="email" placeholder="Email" value={a.email} onChange={(e) => updateAssistant(i, 'email', e.target.value)} />
+                  <button type="button" onClick={() => removeAssistant(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', padding: 4, display: 'flex' }}>
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={addAssistant}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3b7dd8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            <FiPlus size={14} /> Add Assistant
+          </button>
+        </section>
+
+        {/* LOCATION & DATES */}
+        <section>
+          {sectionTitle('Location & Dates')}
+          <div style={{ marginBottom: 12 }}>
+            {label('Event Location', true)}
+            <input style={input} placeholder="Where is the event?" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              {label('Start Date', true)}
+              <input style={input} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              {label('End Date', true)}
+              <input style={input} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      {/* Footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, paddingTop: 16, borderTop: '0.5px solid rgba(0,0,0,0.07)' }}>
+        <span style={{ fontSize: 12, color: '#bbb' }}>* required fields</span>
+        {error && <span style={{ fontSize: 12, color: '#e74c3c' }}>{error}</span>}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          style={{ fontSize: 13, padding: '10px 22px', borderRadius: 8, border: 'none', background: submitting ? '#aaa' : '#3b7dd8', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 500 }}
+        >
+          {submitting ? 'Submitting…' : 'Submit Event'}
+        </button>
+      </div>
+
+    </div>
+  )
+}

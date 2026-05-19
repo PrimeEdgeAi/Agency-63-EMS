@@ -75,7 +75,7 @@ export function OverviewMetrics({ metrics }: OverviewMetricsProps) {
                   fontSize: 11,
                   fontWeight: 600,
                   padding: '3px 8px',
-                  borderRadius: 20,
+                  borderRadius: 15,
                   background: isUp ? '#f0fdf4' : '#fff1f2',
                   color: isUp ? '#15803d' : '#be123c',
                 }}
