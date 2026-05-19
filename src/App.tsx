@@ -19,13 +19,13 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [active,  setActive]  = useState<PageId>('dashboard')
 
-   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        // Map to AppUser explicitly to prevent TypeScript string | undefined mismatch
+  useEffect(() => {
+    // 1. Check current session state immediately on page load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         const appUser: AppUser = {
-          ...data.user,
-          email: data.user.email ?? ""
+          ...session.user,
+          email: session.user.email ?? ""
         }
         setUser(appUser)
       } else {
@@ -33,6 +33,22 @@ export default function App() {
       }
       setLoading(false)
     })
+
+    // 2. Listen for active login transitions (catches the redirect token instantly)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const appUser: AppUser = {
+          ...session.user,
+          email: session.user.email ?? ""
+        }
+        setUser(appUser)
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {
