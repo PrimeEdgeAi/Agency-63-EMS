@@ -1,12 +1,12 @@
 import { FiBell, FiSearch } from 'react-icons/fi'
 import type { PageId, AppUser } from '../../types'
-import { EVENTS_DATA, PAY_REQUESTS } from '../../data'
-import { OverviewMetrics } from './OverviewMetrics'
+// import { EVENTS_DATA, PAY_REQUESTS } from '../../data'
+// import { OverviewMetrics } from './OverviewMetrics'
 import { BusinessModules } from './BusinessModules'
-import { PerformanceOverview } from './PerformanceOverview'
-import { RegistrationsChart } from './RegistrationsChart'
-import { UpcomingEventsList } from './UpcomingEventsList'
-import { ActivityFeed } from './ActivityFeed'
+// import { PerformanceOverview } from './PerformanceOverview'
+// import { RegistrationsChart } from './RegistrationsChart'
+// import { UpcomingEventsList } from './UpcomingEventsList'
+// import { ActivityFeed } from './ActivityFeed'
 
 interface DashboardProps {
   user: AppUser
@@ -19,17 +19,17 @@ export function Dashboard({ user, setActive }: DashboardProps) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
-  const upcoming   = EVENTS_DATA.filter((e) => e.status === 'upcoming').length
-  const totalBudget = EVENTS_DATA.reduce((a, b) => a + b.budget, 0)
-  const totalAtt   = EVENTS_DATA.reduce((a, b) => a + b.attendees, 0)
-  const pendingPay = PAY_REQUESTS.filter((p) => p.status === 'pending').length
+  // const upcoming   = EVENTS_DATA.filter((e) => e.status === 'upcoming').length
+  // const totalBudget = EVENTS_DATA.reduce((a, b) => a + b.budget, 0)
+  // const totalAtt   = EVENTS_DATA.reduce((a, b) => a + b.attendees, 0)
+  // const pendingPay = PAY_REQUESTS.filter((p) => p.status === 'pending').length
 
-  const metrics = [
-    { label: 'Total events',    value: EVENTS_DATA.length,                    sub: `${upcoming} upcoming`,      delta: 14, deltaLabel: 'vs last quarter', icon: 'calendar' as const },
-    { label: 'Total attendees', value: totalAtt.toLocaleString(),             sub: 'across all events',         delta: 18, deltaLabel: 'vs last month',   icon: 'users'    as const },
-    { label: 'Portfolio budget',value: `KES ${(totalBudget/1_000_000).toFixed(1)}M`, sub: 'allocated total',   delta: -4, deltaLabel: 'vs last month',   icon: 'dollar'   as const },
-    { label: 'Pay requests',    value: pendingPay,                            sub: 'awaiting approval',         delta: 2,  deltaLabel: 'new this week',    icon: 'file'     as const },
-  ]
+  // const metrics = [
+  //   { label: 'Total events',    value: EVENTS_DATA.length,                    sub: `${upcoming} upcoming`,      delta: 14, deltaLabel: 'vs last quarter', icon: 'calendar' as const },
+  //   { label: 'Total attendees', value: totalAtt.toLocaleString(),             sub: 'across all events',         delta: 18, deltaLabel: 'vs last month',   icon: 'users'    as const },
+  //   { label: 'Portfolio budget',value: `KES ${(totalBudget/1_000_000).toFixed(1)}M`, sub: 'allocated total',   delta: -4, deltaLabel: 'vs last month',   icon: 'dollar'   as const },
+  //   { label: 'Pay requests',    value: pendingPay,                            sub: 'awaiting approval',         delta: 2,  deltaLabel: 'new this week',    icon: 'file'     as const },
+  // ]
 
   const businessModules: Array<{
     label: string; icon: 'unicorn'|'oneoff'|'alcoholic'|'nonalcoholic'
@@ -41,20 +41,20 @@ export function Dashboard({ user, setActive }: DashboardProps) {
     { label: 'Non Alcoholic', icon: 'nonalcoholic', summary: '6 vendors · KES 490K', metric: '12 orders',         progress: 0.53, accent: '#71c02b' },
   ]
 
-  const targetMetrics = [
-    { label: 'Events completed',   progress: 0.5,                                  detail: '2 / 4',                                               color: '#20c997' },
-    { label: 'Attendee target',    progress: Math.min(totalAtt / 2500, 1),          detail: `${totalAtt.toLocaleString()} / 2,500`,                color: '#4f46e5' },
-    { label: 'Revenue target',     progress: Math.min(totalBudget / 4_400_000, 1),  detail: `KES ${(totalBudget/1_000_000).toFixed(1)}M / 4.4M`,   color: '#f59e0b' },
-    { label: 'Budget utilisation', progress: 0.7,                                   detail: '70%',                                                  color: '#ef4444' },
-  ]
+  // const targetMetrics = [
+  //   { label: 'Events completed',   progress: 0.5,                                  detail: '2 / 4',                                               color: '#20c997' },
+  //   { label: 'Attendee target',    progress: Math.min(totalAtt / 2500, 1),          detail: `${totalAtt.toLocaleString()} / 2,500`,                color: '#4f46e5' },
+  //   { label: 'Revenue target',     progress: Math.min(totalBudget / 4_400_000, 1),  detail: `KES ${(totalBudget/1_000_000).toFixed(1)}M / 4.4M`,   color: '#f59e0b' },
+  //   { label: 'Budget utilisation', progress: 0.7,                                   detail: '70%',                                                  color: '#ef4444' },
+  // ]
 
-  const budgetLines = [
-    { label: 'Venue & Logistics', amount: 'KES 1.4M', percent: '32%', color: '#10b981' },
-    { label: 'Catering',          amount: 'KES 960K',  percent: '22%', color: '#3b82f6' },
-    { label: 'AV & Tech',         amount: 'KES 750K',  percent: '17%', color: '#f59e0b' },
-    { label: 'Marketing',         amount: 'KES 620K',  percent: '14%', color: '#8b5cf6' },
-    { label: 'Contingency',       amount: 'KES 700K',  percent: '16%', color: '#ef4444' },
-  ]
+  // const budgetLines = [
+  //   { label: 'Venue & Logistics', amount: 'KES 1.4M', percent: '32%', color: '#10b981' },
+  //   { label: 'Catering',          amount: 'KES 960K',  percent: '22%', color: '#3b82f6' },
+  //   { label: 'AV & Tech',         amount: 'KES 750K',  percent: '17%', color: '#f59e0b' },
+  //   { label: 'Marketing',         amount: 'KES 620K',  percent: '14%', color: '#8b5cf6' },
+  //   { label: 'Contingency',       amount: 'KES 700K',  percent: '16%', color: '#ef4444' },
+  // ]
 
   return (
     //explain where i need to reduce the top margin for the header banner and add a note about the sticky position and z-index to ensure it stays above other content when scrolling
@@ -64,7 +64,7 @@ export function Dashboard({ user, setActive }: DashboardProps) {
       
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
-        background: 'linear-gradient(135deg, #243c8f 0%, #0f172a 100%)',
+        background: 'linear-gradient(135deg, #243c8f 0%, #248afd 100%)',
         color: 'white', borderRadius: 20, padding: '20px 24px',
         boxShadow: '0 24px 58px rgba(15,23,42,0.18)', marginBottom: 24,
         border: '1px solid rgba(255,255,255,0.08)',
@@ -136,26 +136,28 @@ export function Dashboard({ user, setActive }: DashboardProps) {
           ))} */}
         </div>
       </div>
-
-      {/* ── KPI metric cards ── */}
-      <OverviewMetrics metrics={metrics} />
-
-      {/* ── Chart + upcoming events ── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-        <RegistrationsChart />
-        <UpcomingEventsList events={EVENTS_DATA} setActive={setActive} />
-      </div>
-
-      {/* ── Business modules ── */}
+       {/* ── Business modules ── */}
       <BusinessModules modules={businessModules} />
 
+      {/* ── KPI metric cards ── */}
+
+      {/* <OverviewMetrics metrics={metrics} /> */}
+
+      {/* ── Chart + upcoming events ── */}
+      {/* <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <RegistrationsChart />
+        <UpcomingEventsList events={EVENTS_DATA} setActive={setActive} />
+      </div> */}
+
+     
+
       {/* ── Performance + budget ── */}
-      <PerformanceOverview targetMetrics={targetMetrics} budgetLines={budgetLines} />
+      {/* <PerformanceOverview targetMetrics={targetMetrics} budgetLines={budgetLines} /> */}
 
       {/* ── Activity feed ── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+      {/* <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         <ActivityFeed />
-      </div>
+      </div> */}
     </div>
   )
 }

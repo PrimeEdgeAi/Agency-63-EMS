@@ -19,11 +19,18 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [active,  setActive]  = useState<PageId>('dashboard')
 
-  useEffect(() => {
+   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      //help fix the error above
-      
+      if (data.user) {
+        // Map to AppUser explicitly to prevent TypeScript string | undefined mismatch
+        const appUser: AppUser = {
+          ...data.user,
+          email: data.user.email ?? ""
+        }
+        setUser(appUser)
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
   }, [])
@@ -38,9 +45,9 @@ export default function App() {
   if (!user)   return <LoginPage onLogin={setUser} />
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#eef4ff' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
-      <main style={{ marginLeft: 280, flex: 1, padding: '48px 52px', minHeight: '100vh' }}>
+      <main style={{ marginLeft: 280, flex: 1, padding: '18px 22px', minHeight: '100vh' }}>
         <PageRouter active={active} setActive={setActive} user={user} />
       </main>
     </div>

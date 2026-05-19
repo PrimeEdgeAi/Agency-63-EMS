@@ -65,7 +65,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
     'Business Modules': true,
   })
 
-  const initials = (user.user_metadata.full_name ?? user.email ?? 'U')[0].toUpperCase()
+  // const initials = (user.user_metadata.full_name ?? user.email ?? 'U')[0].toUpperCase()
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({
@@ -83,6 +83,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         left: 0,
         top: 0,
         bottom: 0,
@@ -91,8 +92,8 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
       }}
     >
       {/* Logo */}
-      <div style={{ padding: '28px 24px 24px', borderBottom: '1px solid #e5e5e5' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{  borderBottom: '1px solid #248afd' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '28px 24px 24px', }}>
           <div
             style={{
               width: 36,
@@ -122,7 +123,47 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
             </div>
           </div>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, }}>
+        
+          <div style={{ overflow: 'hidden',
+          background: '#248afd',
+          color: 'white',
+          border: '#248afd',
+           width: 260,
+           }}>
+            <div
+            style={{padding: '10px 24px 24px',}}>
+                          
+            <div
+              style={{
+                color: '#ffffff',
+                fontSize: 13,
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                
+               
+              }}
+            >
+              {user.user_metadata.full_name ?? 'User'}
+            </div>
+            <div
+              style={{
+                color: '#d8dbe1',
+                fontSize: 11,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {user.email}
+            </div>
+            </div>
+          </div>
+        </div>
       </div>
+      
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
@@ -143,8 +184,8 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#6b7280',
-                  fontSize: 10,
+                  color: '#248afd',
+                  fontSize: 14,
                   fontWeight: 700,
                   letterSpacing: 1.8,
                   textTransform: 'uppercase',
@@ -191,58 +232,16 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div style={{ padding: '18px 20px', borderTop: '1px solid #e5e5e5' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#eef4ff',
-              color: '#000000',
-              fontSize: 14,
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            {initials}
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div
-              style={{
-                color: '#111',
-                fontSize: 13,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {user.user_metadata.full_name ?? 'User'}
-            </div>
-            <div
-              style={{
-                color: '#6b7280',
-                fontSize: 11,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {user.email}
-            </div>
-          </div>
-        </div>
+      <div style={{ padding: '18px 20px', borderTop: '1px solid #e5e5e5', background: '#eef4ff', }}>
+        
         <button
           onClick={onLogout}
           style={{
             width: '100%',
-            padding: '10px',
-            background: '#248afd',
+            padding: '5px',
+           color: '#248afd',
             border: 'none',
-            color: 'white',
+            
             fontSize: 12,
             cursor: 'pointer',
             fontFamily: 'Georgia, serif',
@@ -250,7 +249,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
             textTransform: 'uppercase',
           }}
         >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8,  fontSize: 13, fontWeight: 700, }}>
             <FiLogOut /> Sign Out
           </span>
         </button>
