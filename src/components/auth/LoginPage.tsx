@@ -11,25 +11,34 @@ export function LoginPage({ }: LoginPageProps) {
   const [error, setError]       = useState('')
   const [btnHovered, setBtnHov] = useState(false)
 
-const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async () => {
     setLoading(true)
     setError('')
     try {
+
+      // ✅ ONLY FIX: safe redirect for GitHub Pages + localhost
+      const isProd = window.location.hostname !== "localhost"
+
+      const redirectUrl = isProd
+        ? "https://primeedgeai.github.io/Agency-63-EMS/"
+        : "http://localhost:5173/"
+
       const { error: authError } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          // Point back to your deployed GitHub pages site or local test setup
-          redirectTo: window.location.origin 
+          redirectTo: redirectUrl
         }
       })
+
       if (authError) {
         setError(authError.message)
         setLoading(false)
         return
       }
-      
+
       // Note: OAuth handles sign-in via browser redirects. 
       // Supabase triggers a page change rather than providing data.user immediately here.
+
     } catch {
       setError('Authentication failed. Please try again.')
       setLoading(false)
