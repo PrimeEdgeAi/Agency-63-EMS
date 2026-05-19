@@ -13,7 +13,7 @@ interface DashboardProps {
   setActive: (id: PageId) => void
 }
 
-export function Dashboard({ user, setActive }: DashboardProps) {
+export function Dashboard({ user }: DashboardProps) {
   const firstName = (user.user_metadata.full_name ?? user.email ?? 'there').split(' ')[0]
   const dateLabel = new Date().toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
