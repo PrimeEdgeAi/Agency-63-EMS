@@ -14,6 +14,11 @@ import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 
+
+const ALLOWED_EMAILS = [
+  "kmongare4@gmail.com",
+]
+
 export default function App() {
   const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,28 +28,34 @@ export default function App() {
     const initAuth = async () => {
       setLoading(true)
 
-      // ✅ 1. Restore session correctly
       const { data: sessionData } = await supabase.auth.getSession()
 
       const sessionUser = sessionData?.session?.user
 
       if (sessionUser) {
+        const email = sessionUser.email ?? ""
+
+        // 🔐 BLOCK UNAUTHORIZED USERS
+        if (!ALLOWED_EMAILS.includes(email)) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setLoading(false)
+          return
+        }
+
         const appUser: AppUser = {
           ...sessionUser,
-          email: sessionUser.email ?? ""
+          email
         }
+
         setUser(appUser)
       } else {
         setUser(null)
       }
 
-      // ✅ 2. Clean OAuth URL hash (GitHub Pages fix)
+      // clean OAuth hash (GitHub Pages fix)
       if (window.location.hash.includes("access_token")) {
-        window.history.replaceState(
-          null,
-          "",
-          "/Agency-63-EMS/#/"
-        )
+        window.history.replaceState(null, "", "/Agency-63-EMS/#/")
       }
 
       setLoading(false)
@@ -52,14 +63,23 @@ export default function App() {
 
     initAuth()
 
-    // 🔥 3. REAL FIX: Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
+          const email = session.user.email ?? ""
+
+          // 🔐 BLOCK UNAUTHORIZED USERS
+          if (!ALLOWED_EMAILS.includes(email)) {
+            await supabase.auth.signOut()
+            setUser(null)
+            return
+          }
+
           const appUser: AppUser = {
             ...session.user,
-            email: session.user.email ?? ""
+            email
           }
+
           setUser(appUser)
         } else {
           setUser(null)
@@ -84,20 +104,14 @@ export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
-      <main style={{ marginLeft: 280, flex: 1,  minHeight: '100vh' }}>
+      <main style={{ marginLeft: 280, flex: 1, padding: '18px 22px', minHeight: '100vh' }}>
         <PageRouter active={active} setActive={setActive} user={user} />
       </main>
     </div>
   )
 }
 
-interface RouterProps {
-  active: PageId
-  setActive: (id: PageId) => void
-  user: AppUser
-}
-
-function PageRouter({ active, setActive, user }: RouterProps) {
+function PageRouter({ active, setActive, user }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
     case 'events': return <EventsPage />
