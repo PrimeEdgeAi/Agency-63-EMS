@@ -15,24 +15,61 @@ import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 
 export default function App() {
-  const [user,    setUser]    = useState<AppUser | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [active,  setActive]  = useState<PageId>('dashboard')
+  const [active, setActive] = useState<PageId>('dashboard')
 
-   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        // Map to AppUser explicitly to prevent TypeScript string | undefined mismatch
+  useEffect(() => {
+    const initAuth = async () => {
+      setLoading(true)
+
+      // ✅ 1. Restore session correctly
+      const { data: sessionData } = await supabase.auth.getSession()
+
+      const sessionUser = sessionData?.session?.user
+
+      if (sessionUser) {
         const appUser: AppUser = {
-          ...data.user,
-          email: data.user.email ?? ""
+          ...sessionUser,
+          email: sessionUser.email ?? ""
         }
         setUser(appUser)
       } else {
         setUser(null)
       }
+
+      // ✅ 2. Clean OAuth URL hash (GitHub Pages fix)
+      if (window.location.hash.includes("access_token")) {
+        window.history.replaceState(
+          null,
+          "",
+          "/Agency-63-EMS/#/"
+        )
+      }
+
       setLoading(false)
-    })
+    }
+
+    initAuth()
+
+    // 🔥 3. REAL FIX: Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const appUser: AppUser = {
+            ...session.user,
+            email: session.user.email ?? ""
+          }
+          setUser(appUser)
+        } else {
+          setUser(null)
+        }
+      }
+    )
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -42,7 +79,7 @@ export default function App() {
   }
 
   if (loading) return <Spinner />
-  if (!user)   return <LoginPage onLogin={setUser} />
+  if (!user) return <LoginPage onLogin={setUser} />
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
@@ -62,14 +99,14 @@ interface RouterProps {
 
 function PageRouter({ active, setActive, user }: RouterProps) {
   switch (active) {
-    case 'dashboard':  return <Dashboard user={user} setActive={setActive} />
-    case 'events':     return <EventsPage />
-    case 'recce':      return <ReccePage />
+    case 'dashboard': return <Dashboard user={user} setActive={setActive} />
+    case 'events': return <EventsPage />
+    case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />
-    case 'settings':   return <SettingsPage user={user} />
-    case 'help':       return <HelpPage />
+    case 'settings': return <SettingsPage user={user} />
+    case 'help': return <HelpPage />
     case 'NonAlcoholic': return <NonAlcoholic />
     case 'Alcoholic': return <Alcoholic />
-    default:           return <Dashboard user={user} setActive={setActive} />
+    default: return <Dashboard user={user} setActive={setActive} />
   }
 }
