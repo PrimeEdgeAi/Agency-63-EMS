@@ -84,7 +84,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
-      <main style={{ marginLeft: 280, flex: 1, padding: '18px 22px', minHeight: '100vh' }}>
+      <main style={{ marginLeft: 280, flex: 1,  minHeight: '100vh' }}>
         <PageRouter active={active} setActive={setActive} user={user} />
       </main>
     </div>
