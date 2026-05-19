@@ -20,8 +20,8 @@ export function LoginPage({ }: LoginPageProps) {
       const isProd = window.location.hostname !== "localhost"
 
       const redirectUrl = isProd
-        ? "https://primeedgeai.github.io/Agency-63-EMS/#/"
-        : "http://localhost:5173/#/"
+        ? "https://primeedgeai.github.io/Agency-63-EMS/"
+        : "http://localhost:5173/"
 
       const { error: authError } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
