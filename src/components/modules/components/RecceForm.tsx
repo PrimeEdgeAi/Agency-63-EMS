@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiArrowLeft, FiCheck } from 'react-icons/fi'
+import { FiCheck } from 'react-icons/fi'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 const RECCE_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/reccee-assessment'
@@ -36,7 +36,7 @@ const sectionLabel = (text: string) => (
 )
 
 // ─── Radio + Checkbox components ──────────────────────────────────────────────
-function RadioGroup({ name, options, value, onChange }: { name: string; options: string[]; value: string; onChange: (v: string) => void }) {
+function RadioGroup({ options, value, onChange }: { name: string; options: string[]; value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
       {options.map(opt => (
@@ -66,7 +66,7 @@ function CheckGroup({ options, values, onChange }: { options: string[]; values: 
 function StepBar({ current, total }: { current: number; total: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-      {Array.from({ length: total }, (_, i) => i + 1).map((n, i) => (
+      {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
         <div key={n} style={{ display: 'flex', alignItems: 'center', flex: n < total ? 1 : undefined }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${n < current ? '#111' : n === current ? '#111' : 'rgba(0,0,0,0.15)'}`, background: n < current ? '#111' : n === current ? 'rgba(0,0,0,0.06)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: n < current ? '#fff' : '#555', flexShrink: 0 }}>
             {n < current ? <FiCheck size={12} /> : n}
