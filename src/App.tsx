@@ -14,22 +14,27 @@ import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 
-
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
 ]
+
+// 🔥 NEW: admin access error state message
+const ADMIN_ERROR_MESSAGE =
+  "Access denied. Please contact your administrator for account approval."
 
 export default function App() {
   const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<PageId>('dashboard')
 
+  // 🔥 NEW: store access error
+  const [accessError, setAccessError] = useState('')
+
   useEffect(() => {
     const initAuth = async () => {
       setLoading(true)
 
       const { data: sessionData } = await supabase.auth.getSession()
-
       const sessionUser = sessionData?.session?.user
 
       if (sessionUser) {
@@ -39,6 +44,10 @@ export default function App() {
         if (!ALLOWED_EMAILS.includes(email)) {
           await supabase.auth.signOut()
           setUser(null)
+
+          // 🔥 NEW: show admin message
+          setAccessError(ADMIN_ERROR_MESSAGE)
+
           setLoading(false)
           return
         }
@@ -72,6 +81,9 @@ export default function App() {
           if (!ALLOWED_EMAILS.includes(email)) {
             await supabase.auth.signOut()
             setUser(null)
+
+            setAccessError(ADMIN_ERROR_MESSAGE)
+
             return
           }
 
@@ -96,9 +108,38 @@ export default function App() {
     await supabase.auth.signOut()
     setUser(null)
     setActive('dashboard')
+
+    // clear error on logout
+    setAccessError('')
   }
 
   if (loading) return <Spinner />
+
+  if (!user && accessError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Arial'
+      }}>
+        <div style={{
+          padding: 24,
+          borderRadius: 12,
+          background: '#fff1f2',
+          border: '1px solid #fecdd3',
+          color: '#be123c',
+          maxWidth: 420,
+          textAlign: 'center'
+        }}>
+          <h2 style={{ marginBottom: 10 }}>Access Restricted</h2>
+          <p>{accessError}</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user) return <LoginPage onLogin={setUser} />
 
   return (
