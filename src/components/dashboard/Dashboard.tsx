@@ -59,11 +59,14 @@ export function Dashboard({ user }: DashboardProps) {
   return (
     //explain where i need to reduce the top margin for the header banner and add a note about the sticky position and z-index to ensure it stays above other content when scrolling
       
-    <div className="animate-fade-in" style={{ padding: 5 }}>
+    <div className="animate-fade-in" 
+    // style={{ padding: 5 }}
+    >
       {/* ── Header banner ── */}
       
       <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
+        // position: 'sticky', 
+        top: 0, zIndex: 20,
         background: 'linear-gradient(135deg, #243c8f 0%, #248afd 100%)',
         color: 'white', borderRadius: 20, padding: '20px 24px',
         boxShadow: '0 24px 58px rgba(15,23,42,0.18)', marginBottom: 24,
