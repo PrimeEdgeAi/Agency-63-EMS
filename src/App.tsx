@@ -128,8 +128,8 @@ export default function App() {
           padding: 24,
           borderRadius: 12,
           background: '#fff1f2',
-          border: '1px solid #fecdd3',
-          color: '#be123c',
+          border: '1px solid #cdd9fe',
+          color: '#121bbe',
           maxWidth: 420,
           textAlign: 'center'
         }}>
