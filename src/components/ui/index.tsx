@@ -255,7 +255,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ section, title, children }: PageHeaderProps) {
   return (
-    <div className="flex justify-between items-end mb-8">
+    <div className="flex justify-between items-end" style={{ marginBottom: 0 }}>
       <div>
         <p style={{ color: '#aaa', fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 8px', fontWeight: 600 }}>
           {section}

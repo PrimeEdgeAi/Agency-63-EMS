@@ -36,7 +36,7 @@ const tokens = {
 
   /* Accent — deep teal */
   accentBase: '#248afd',
-  accentLight: 'rgb(225, 233, 245)',
+  accentLight: 'hsl(216, 50%, 92%)',
   accentHover: '#248afd',
   accentText: 'rgb(8, 43, 80)',
 
@@ -334,6 +334,7 @@ export function NonAlcoholic() {
         {/* ── Sticky header ── */}
         <div
           style={{
+            
             flexShrink: 0,
             padding: '20px 24px 0',
             background: tokens.surfacePrimary,
