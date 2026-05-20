@@ -16,6 +16,7 @@ import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
+  "ericmunene1410@gmail.com"
 ]
 
 // 🔥 NEW: admin access error state message
