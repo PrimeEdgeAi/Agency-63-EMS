@@ -56,7 +56,7 @@ export function LoginPage({ }: LoginPageProps) {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '64px 56px',
-          background: '#111',
+          background: '#000000',
         }}
       >
         <div
@@ -79,8 +79,8 @@ export function LoginPage({ }: LoginPageProps) {
               height: 110,
               objectFit: 'cover',
               borderRadius: 24,
-              border: '1px solid rgba(255,255,255,0.18)',
-              boxShadow: '0 28px 60px rgba(0,0,0,0.25)',
+              // border: '1px solid rgba(255,255,255,0.18)',
+              // boxShadow: '0 28px 60px rgba(0,0,0,0.25)',
             }}
           />
 
@@ -147,7 +147,7 @@ export function LoginPage({ }: LoginPageProps) {
               padding: '14px 24px',
               borderRadius: 12,
               border: '1.5px solid #e5e5e5',
-              background: btnHovered ? '#111' : 'white',
+              background: btnHovered ? '#248afd' : 'white',
               color: btnHovered ? 'white' : '#111',
               fontSize: 15,
               fontWeight: 600,

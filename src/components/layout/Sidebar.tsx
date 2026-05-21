@@ -77,7 +77,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
   return (
     <aside
       style={{
-        width: 260,
+        width: 280,
         minHeight: '100vh',
         background: 'white',
         display: 'flex',
@@ -129,7 +129,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
           background: '#248afd',
           color: 'white',
           border: '#248afd',
-           width: 260,
+           width: 280,
            }}>
             <div
             style={{padding: '10px 24px 24px',}}>

@@ -14,6 +14,10 @@
  *    - Set the redirect URL to your domain
  */
 
+//how do i add the step 3 am stuck
+
+
+
 // ─── Real Client (uncomment for production) ───────────────────────────────────
 import { createClient } from '@supabase/supabase-js'
 
