@@ -23,7 +23,7 @@ const ICONS = {
 
 export function BusinessModules({ modules }: BusinessModulesProps) {
   return (
-    <section style={{ marginBottom: 32 }}>
+    <section style={{ marginBottom: 32, padding: '0 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginBottom: 16 }}>
         <div>
           <p style={{ color: '#7d7d7d', fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 8px', fontWeight: 600 }}>
