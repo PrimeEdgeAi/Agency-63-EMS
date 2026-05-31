@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
 
@@ -53,6 +53,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [loadingJobs, setLoadingJobs]   = useState(false)
   const [jobMsg, setJobMsg]             = useState('')
   const [jobMsgType, setJobMsgType]     = useState<'ok' | 'err' | ''>('')
+  const jobRef = useRef<HTMLDivElement | null>(null)
 
   // requestor
   const [reqName, setReqName]           = useState('')
@@ -175,49 +176,65 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   return (
     <div>
       {/* ── Job Lookup ── */}
-      {sectionLabel('Job Lookup')}
-      <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
-        {accountLabel}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
-          <button type="button" onClick={loadJobs} disabled={loadingJobs}
-            style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>
-            {loadingJobs ? 'Loading…' : 'Load Jobs'}
-          </button>
-        </div>
-        {jobMsg && <div style={{ fontSize: 12, color: jobMsgType === 'err' ? '#e74c3c' : '#3B6D11', marginBottom: jobs.length ? 12 : 0 }}>{jobMsg}</div>}
-        {jobs.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {jobs.map((job, i) => {
-              const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
-              return (
-                <div key={i} onClick={() => setSelectedJob(job)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
-                  </div>
-                  {isSelected && <FiCheck size={14} />}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Job Reference (auto-filled) ── */}
-      {sectionLabel('Job Reference')}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Job ID</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Job_ID'] || ''} placeholder="Select a job above" /></div>
-        <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Client</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Client'] || ''} placeholder="Auto-filled" /></div>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Event / Project Description</div>
-        <input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Description'] || ''} placeholder="Auto-filled" />
-      </div>
-
-      {/* ── Requestor ── */}
-      {sectionLabel('Requestor Details')}
++      {step === 1 && (
++        <>
++          {sectionLabel('Job Lookup')}
++          <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
++            {accountLabel}
++            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
++              <button type="button" onClick={loadJobs} disabled={loadingJobs}
++                style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>
++                {loadingJobs ? 'Loading…' : 'Load Jobs'}
++              </button>
++            </div>
++            {jobMsg && <div style={{ fontSize: 12, color: jobMsgType === 'err' ? '#e74c3c' : '#3B6D11', marginBottom: jobs.length ? 12 : 0 }}>{jobMsg}</div>}
++            {jobs.length > 0 && (
++              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
++                {jobs.map((job, i) => {
++                  const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
++                  return (
++                    <div key={i} onClick={() => { setSelectedJob(job); setJobMsg(''); setJobMsgType('ok'); setStep(2) }}
++                      style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
++                      <div>
++                        <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
++                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
++                        <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
++                      </div>
++                      {isSelected && <FiCheck size={14} />}
++                    </div>
++                  )
++                })}
++              </div>
++            )}
++
++            {loadingJobs && (
++              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
++                <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
++                <div style={{ fontSize: 12, color: '#248afd' }}>Fetching your assigned jobs…</div>
++              </div>
++            )}
++          </div>
++        </>
++      )}
++
++      {step === 2 && (
++        <>
++          {/* ── Job Reference (auto-filled) ── */}
++          <div style={{ marginBottom: 8 }}>
++            <button type="button" onClick={() => { setSelectedJob(null); setStep(1); setJobMsg(''); setJobMsgType('') }} style={{ fontSize: 12, padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#248afd', cursor: 'pointer', marginBottom: 8 }}>← Change job</button>
++          </div>
++          {sectionLabel('Job Reference')}
++          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
++            <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Job ID</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Job_ID'] || ''} placeholder="Select a job above" /></div>
++            <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Client</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Client'] || ''} placeholder="Auto-filled" /></div>
++          </div>
++          <div style={{ marginBottom: 16 }}>
++            <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Event / Project Description</div>
++            <input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Description'] || ''} placeholder="Auto-filled" />
++          </div>
++        </>
++      )}
+*** End Patch      {sectionLabel('Requestor Details')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Name <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="text" value={reqName} onChange={e => setReqName(e.target.value)} placeholder="Full name" /></div>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Email <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="email" value={reqEmail} onChange={e => setReqEmail(e.target.value)} placeholder="your.email@company.com" /></div>
