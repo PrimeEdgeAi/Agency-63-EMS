@@ -14,6 +14,7 @@ export interface AppUser {
 
 export type PageId =
   | 'dashboard'
+  | 'admin'
   | 'UniCorns'
   | 'One Off'
   | 'Alcoholic'

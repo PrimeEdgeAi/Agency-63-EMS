@@ -47,6 +47,7 @@ const NAV: NavSection[] = [
   {
     section: 'Settings',
     items: [
+      { id: 'admin', label: 'Admin', icon: <TbReportSearch /> },
       { id: 'settings', label: 'Settings', icon: <IoSettingsOutline /> },
       { id: 'help',     label: 'Help',     icon: <FiHelpCircle /> },
     ],
