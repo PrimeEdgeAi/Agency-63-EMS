@@ -197,36 +197,44 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
               </button>
 
               {isOpen &&
-                section.items.map((item) => {
-                  const isActive = active === item.id
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActive(item.id)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        background: isActive ? '#eef4ff' : 'transparent',
-                        border: 'none',
-                        borderLeft: isActive ? '4px solid #248afd' : '4px solid transparent',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        color: isActive ? '#111' : '#475569',
-                        fontSize: 14,
-                        fontFamily: 'Georgia, serif',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ fontSize: 16, width: 24, textAlign: 'center', color: isActive ? '#248afd' : '#94a3b8' }}>
-                        {item.icon}
-                      </span>
-                      <span style={{ flex: 1 }}>{item.label}</span>
-                    </button>
-                  )
-                })}
+                section.items
+                  .filter((item) => {
+                    // hide Admin item unless the logged-in user is the configured admin
+                    if (item.id === 'admin') {
+                      return user.email === 'kevin.n.mongare@gmail.com'
+                    }
+                    return true
+                  })
+                  .map((item) => {
+                    const isActive = active === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActive(item.id)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          background: isActive ? '#eef4ff' : 'transparent',
+                          border: 'none',
+                          borderLeft: isActive ? '4px solid #248afd' : '4px solid transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          color: isActive ? '#111' : '#475569',
+                          fontSize: 14,
+                          fontFamily: 'Georgia, serif',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: 16, width: 24, textAlign: 'center', color: isActive ? '#248afd' : '#94a3b8' }}>
+                          {item.icon}
+                        </span>
+                        <span style={{ flex: 1 }}>{item.label}</span>
+                      </button>
+                    )
+                  })}
             </div>
           )
         })}
