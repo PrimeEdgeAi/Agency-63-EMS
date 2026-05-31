@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
+import { supabase } from '../../../lib/supabase'
 
 const SHEET_CSV_URL       = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 const REQUISITION_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/requisition-request'
@@ -57,6 +58,23 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [reqName, setReqName]           = useState('')
   const [reqEmail, setReqEmail]         = useState('')
   const [dateRequired, setDateRequired] = useState('')
+
+  // auto-load jobs for logged-in user
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const sessionEmail = sessionData?.session?.user?.email ?? ''
+        if (sessionEmail) {
+          setLookupEmail(sessionEmail)
+          await loadJobs()
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    init()
+  }, [])
 
   // line items
   const [lineItems, setLineItems]       = useState<LineItem[]>([{ id: 1, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0 }])
@@ -155,10 +173,6 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       {sectionLabel('Job Lookup')}
       <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
-          <div style={{ flex: '1 1 220px' }}>
-            <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your email address</div>
-            <input style={inp} type="email" value={lookupEmail} onChange={e => setLookupEmail(e.target.value)} placeholder="your.email@company.com" onKeyDown={e => e.key === 'Enter' && loadJobs()} />
-          </div>
           <button type="button" onClick={loadJobs} disabled={loadingJobs}
             style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>
             {loadingJobs ? 'Loading…' : 'Load Jobs'}
