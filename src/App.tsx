@@ -13,6 +13,7 @@ import { SettingsPage } from './components/settings/SettingsPage'
 import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
+import AdminDashboard from './components/admin/AdminDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
@@ -161,6 +162,7 @@ export default function App() {
 function PageRouter({ active, setActive, user }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
+    case 'admin': return <AdminDashboard />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />

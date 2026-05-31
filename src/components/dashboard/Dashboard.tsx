@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { PageId, AppUser } from '../../types'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -338,6 +338,23 @@ export function Dashboard({ setActive }: DashboardProps) {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
   })
 
+  // Proposals snapshot: read from localStorage (same key used by Admin)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('admin:proposals')
+      if (!raw) return
+      const props = JSON.parse(raw) as Array<{ status: string; submittedAt: string }>
+      const approved = props.filter(p => p.status === 'approved').length
+      const delayed = props.filter(p => p.status !== 'approved' && (Date.now() - new Date(p.submittedAt).getTime()) > 72 * 3600 * 1000).length
+      const a = document.getElementById('approved-count')
+      const d = document.getElementById('delayed-count')
+      if (a) a.textContent = String(approved)
+      if (d) d.textContent = String(delayed)
+    } catch (e) {
+      // ignore
+    }
+  }, [])
+
   return (
     <div style={{ background: C.pageBg, minHeight: '100vh', fontFamily: "'DM Sans', 'Georgia', sans-serif" }}>
 
@@ -395,6 +412,26 @@ export function Dashboard({ setActive }: DashboardProps) {
           <KpiCard label="Active Events"     value={String(activeEvents)}  sub="Currently in pipeline" accent={C.green}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>} />
           <KpiCard label="Total Claims"      value={fmtKES(totalClaims)}  sub="Staff payouts logged"   accent={C.amber}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} />
           <KpiCard label="Requisition Value" value={fmtKES(totalReq)}     sub="Procurement committed"  accent={C.red}    icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
+        </div>
+
+        {/* ── Proposals Snapshot (from Admin) ── */}
+        <div style={{ display: 'flex', gap: 14, marginBottom: 24 }}>
+          <div style={{ ...card, minWidth: 260 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 6 }}>Proposals</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Summary</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, color: C.textFaint }}>Approved</div>
+                <div id="approved-count" style={{ fontSize: 16, fontWeight: 700, color: C.green }}>0</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ fontSize: 12, color: C.textFaint, minWidth: 82 }}>Delayed >72h</div>
+              <div id="delayed-count" style={{ fontSize: 13, fontWeight: 700, color: C.red }}>0</div>
+            </div>
+          </div>
         </div>
 
         {/* ── Quick Access Shortcuts ── */}

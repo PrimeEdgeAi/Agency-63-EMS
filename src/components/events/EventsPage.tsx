@@ -13,7 +13,7 @@ export function EventsPage() {
   const [view,      setView]      = useState<ViewMode>('grid')
   const [filter,    setFilter]    = useState('all')
   const [selected,  setSelected]  = useState<EventItem | null>(null)
-  const [showForm,  setShowForm]  = useState(false)
+  const [showForm,  setShowForm]  = useState(true)
 
   const filtered =
     filter === 'all' ? EVENTS_DATA : EVENTS_DATA.filter((e) => e.status === filter)

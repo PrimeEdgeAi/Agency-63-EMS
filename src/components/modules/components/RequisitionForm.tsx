@@ -110,6 +110,11 @@ export function RequisitionForm({ companyName, onBack }: Props) {
     finally { setLoadingJobs(false) }
   }
 
+  // visible account label helper
+  const accountLabel = lookupEmail ? (
+    <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>Using account: <span style={{ fontWeight: 600 }}>{lookupEmail}</span></div>
+  ) : null
+
   // ── Line item helpers ──
   function addLine() {
     setLineItems(prev => [...prev, { id: nextId, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0 }])
@@ -172,6 +177,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       {/* ── Job Lookup ── */}
       {sectionLabel('Job Lookup')}
       <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
+        {accountLabel}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
           <button type="button" onClick={loadJobs} disabled={loadingJobs}
             style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>

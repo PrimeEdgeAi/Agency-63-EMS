@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
@@ -85,6 +86,7 @@ type Props = { companyName: string; onBack: () => void }
 export function RecceForm({ companyName, onBack }: Props) {
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
+  const [skipStepOne, setSkipStepOne] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(false)
@@ -131,6 +133,24 @@ export function RecceForm({ companyName, onBack }: Props) {
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
+
+  // Auto-populate email from session and attempt job lookup
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const sessionEmail = sessionData?.session?.user?.email ?? ''
+        if (sessionEmail) {
+          setEmail(sessionEmail)
+          setSkipStepOne(true)
+          await findJobs()
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    init()
+  }, [])
 
   // ── Submit ──
   async function submit() {
@@ -184,14 +204,14 @@ export function RecceForm({ companyName, onBack }: Props) {
       <StepBar current={step} total={6} />
 
       {/* Step 1 — Email */}
-      {step === 1 && (
+      {step === 1 && !skipStepOne && (
         <div>
           {sectionLabel('Project Lead Verification')}
           {field('Your Email Address', true,
-            <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.email@company.com" />
+            <div style={{ fontSize: 13, color: '#555' }}>Using your logged-in account email for verification: <span style={{ fontWeight: 600 }}>{email}</span></div>
           )}
           {error && <div style={{ fontSize: 12, color: '#e74c3c', marginBottom: 12 }}>{error}</div>}
-          {navRow(undefined, findJobs, loading ? 'Searching…' : 'Find My Jobs →', loading)}
+              {navRow(undefined, findJobs, loading ? 'Searching…' : 'Find My Jobs →', loading)}
         </div>
       )}
 
