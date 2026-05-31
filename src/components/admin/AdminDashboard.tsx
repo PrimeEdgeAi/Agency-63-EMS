@@ -14,7 +14,7 @@ type Proposal = {
   last_reminder_at?: string | null
 }
 
-const REMINDER_WEBHOOK = process.env.VITE_REMINDER_WEBHOOK_URL || '' // configure in env
+const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || '' // configure in env
 const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
 
 function nowIso() { return new Date().toISOString() }

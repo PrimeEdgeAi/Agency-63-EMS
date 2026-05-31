@@ -428,7 +428,7 @@ export function Dashboard({ setActive }: DashboardProps) {
               </div>
             </div>
             <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ fontSize: 12, color: C.textFaint, minWidth: 82 }}>Delayed >72h</div>
+              <div style={{ fontSize: 12, color: C.textFaint, minWidth: 82 }}>Delayed {'>'}72h</div>
               <div id="delayed-count" style={{ fontSize: 13, fontWeight: 700, color: C.red }}>0</div>
             </div>
           </div>
