@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
 
@@ -53,6 +53,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [loadingJobs, setLoadingJobs]   = useState(false)
   const [jobMsg, setJobMsg]             = useState('')
   const [jobMsgType, setJobMsgType]     = useState<'ok' | 'err' | ''>('')
+  const jobRef = useRef<HTMLDivElement | null>(null)
 
   // requestor
   const [reqName, setReqName]           = useState('')
@@ -185,24 +186,31 @@ export function RequisitionForm({ companyName, onBack }: Props) {
           </button>
         </div>
         {jobMsg && <div style={{ fontSize: 12, color: jobMsgType === 'err' ? '#e74c3c' : '#3B6D11', marginBottom: jobs.length ? 12 : 0 }}>{jobMsg}</div>}
-        {jobs.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {jobs.map((job, i) => {
-              const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
-              return (
-                <div key={i} onClick={() => setSelectedJob(job)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
+          {jobs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {jobs.map((job, i) => {
+                const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
+                return (
+                  <div key={i} onClick={() => { setSelectedJob(job); setJobMsg(''); setJobMsgType('ok'); setTimeout(() => jobRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120) }}
+                    style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
+                    </div>
+                    {isSelected && <FiCheck size={14} />}
                   </div>
-                  {isSelected && <FiCheck size={14} />}
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+
+          {loadingJobs && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
+              <div style={{ fontSize: 12, color: '#248afd' }}>Fetching your assigned jobs…</div>
+            </div>
+          )}
       </div>
 
       {/* ── Job Reference (auto-filled) ── */}

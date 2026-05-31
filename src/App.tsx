@@ -17,7 +17,8 @@ import AdminDashboard from './components/admin/AdminDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
-  "ericmunene1410@gmail.com"
+  "ericmunene1410@gmail.com",
+  "kevin.n.mongare@gmail.com"
 ]
 
 // 🔥 NEW: admin access error state message
