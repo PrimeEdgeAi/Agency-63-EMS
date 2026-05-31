@@ -208,7 +208,6 @@ export function RequisitionForm({ companyName, onBack }: Props) {
                 })}
               </div>
             )}
-
             {loadingJobs && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
@@ -221,7 +220,6 @@ export function RequisitionForm({ companyName, onBack }: Props) {
 
       {step === 2 && (
         <>
-          {/* ── Job Reference (auto-filled) ── */}
           <div style={{ marginBottom: 8 }}>
             <button type="button" onClick={() => { setSelectedJob(null); setStep(1); setJobMsg(''); setJobMsgType('') }} style={{ fontSize: 12, padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#248afd', cursor: 'pointer', marginBottom: 8 }}>← Change job</button>
           </div>
@@ -236,6 +234,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
           </div>
         </>
       )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Name <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="text" value={reqName} onChange={e => setReqName(e.target.value)} placeholder="Full name" /></div>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Email <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="email" value={reqEmail} onChange={e => setReqEmail(e.target.value)} placeholder="your.email@company.com" /></div>
@@ -275,15 +274,9 @@ export function RequisitionForm({ companyName, onBack }: Props) {
                 <td style={{ padding: '6px 6px 6px 8px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
                   <input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.description} onChange={e => updateLine(li.id, 'description', e.target.value)} placeholder="Line item…" />
                 </td>
-                {/* Details */}
+                {/* Details — text input only */}
                 <td style={{ padding: '6px 8px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <div style={{ display: 'grid', gap: 5 }}>
-                    <input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.supplier} onChange={e => updateLine(li.id, 'supplier', e.target.value)} placeholder="Supplier / details" />
-                    <select style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.category} onChange={e => updateLine(li.id, 'category', e.target.value)}>
-                      <option value="">Category…</option>
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.supplier} onChange={e => updateLine(li.id, 'supplier', e.target.value)} placeholder="Supplier / details" />
                 </td>
                 {/* Days */}
                 <td style={{ padding: '6px', borderRight: '0.5px solid rgba(0,0,0,0.06)', textAlign: 'center' }}>
