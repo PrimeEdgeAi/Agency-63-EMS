@@ -13,7 +13,7 @@ import { SettingsPage } from './components/settings/SettingsPage'
 import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
-import AdminDashboard from './components/admin/AdminDashboard'
+import AdminDashboard from './admin/AdminDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",

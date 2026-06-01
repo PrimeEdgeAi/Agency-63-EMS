@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 const SHEET_CSV_URL       = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 const REQUISITION_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/requisition-request'
 
-const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
+// const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
 const URGENCY    = ['Low', 'Medium', 'High', 'Urgent']
 
 // ─── CSV helpers ─────────────────────────────────────────────────────────────
