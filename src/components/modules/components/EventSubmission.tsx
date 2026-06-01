@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
 import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
 
 const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/your-webhook-id' // 🔗 Replace with your n8n URL
@@ -93,6 +94,20 @@ export function EventSubmission({ companyName, onBack }: Props) {
     }
   }
 
+  // Auto-populate email from session (hide manual input)
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const sessionEmail = sessionData?.session?.user?.email ?? ''
+        if (sessionEmail) setEmail(sessionEmail)
+      } catch (e) {
+        // ignore
+      }
+    }
+    init()
+  }, [])
+
   // ── Success state ──
   if (submitted) {
     return (
@@ -183,7 +198,7 @@ export function EventSubmission({ companyName, onBack }: Props) {
           </div>
           <div>
             {label('Email', true)}
-            <input style={input} type="email" placeholder="kmongare4@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <div style={{ fontSize: 13, color: '#555' }}>Using account: <span style={{ fontWeight: 600 }}>{email}</span></div>
           </div>
         </section>
 

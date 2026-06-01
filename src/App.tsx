@@ -13,10 +13,12 @@ import { SettingsPage } from './components/settings/SettingsPage'
 import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
+import AdminDashboard from './admin/AdminDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
-  "ericmunene1410@gmail.com"
+  "ericmunene1410@gmail.com",
+  "kevin.n.mongare@gmail.com"
 ]
 
 // 🔥 NEW: admin access error state message
@@ -38,30 +40,33 @@ export default function App() {
       const { data: sessionData } = await supabase.auth.getSession()
       const sessionUser = sessionData?.session?.user
 
-      if (sessionUser) {
-        const email = sessionUser.email ?? ""
+          if (sessionUser) {
+            const email = sessionUser.email ?? ""
 
-        // 🔐 BLOCK UNAUTHORIZED USERS
-        if (!ALLOWED_EMAILS.includes(email)) {
-          await supabase.auth.signOut()
-          setUser(null)
+            // 🔐 BLOCK UNAUTHORIZED USERS
+            if (!ALLOWED_EMAILS.includes(email)) {
+              await supabase.auth.signOut()
+              setUser(null)
 
-          // 🔥 NEW: show admin message
-          setAccessError(ADMIN_ERROR_MESSAGE)
+              // 🔥 NEW: show admin message
+              setAccessError(ADMIN_ERROR_MESSAGE)
 
-          setLoading(false)
-          return
-        }
+              setLoading(false)
+              return
+            }
 
-        const appUser: AppUser = {
-          ...sessionUser,
-          email
-        }
+            const appUser: AppUser = {
+              ...sessionUser,
+              email
+            }
 
-        setUser(appUser)
-      } else {
-        setUser(null)
-      }
+            setUser(appUser)
+
+            // If this is the admin email, open admin dashboard by default
+            if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
+          } else {
+            setUser(null)
+          }
 
       // clean OAuth hash (GitHub Pages fix)
       if (window.location.hash.includes("access_token")) {
@@ -75,7 +80,7 @@ export default function App() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) {
+      if (session?.user) {
           const email = session.user.email ?? ""
 
           // 🔐 BLOCK UNAUTHORIZED USERS
@@ -94,6 +99,8 @@ export default function App() {
           }
 
           setUser(appUser)
+
+          if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
         } else {
           setUser(null)
         }
@@ -161,6 +168,7 @@ export default function App() {
 function PageRouter({ active, setActive, user }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
+    case 'admin': return <AdminDashboard />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />

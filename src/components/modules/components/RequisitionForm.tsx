@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 const SHEET_CSV_URL       = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 const REQUISITION_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/requisition-request'
 
-const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
+// const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
 const URGENCY    = ['Low', 'Medium', 'High', 'Urgent']
 
 // ─── CSV helpers ─────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ function emailMatch(email: string, row: Record<string, string>) {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Job = Record<string, string>
-type LineItem = { id: number; description: string; supplier: string; category: string; qty: number; days: number; unitCost: number }
+type LineItem = { id: number; description: string; supplier: string; category: string; qty: number; days: number; unitCost: number; budgetedAmount: number }
 
 const inp: React.CSSProperties = { width: '100%', fontSize: 13, padding: '9px 12px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', color: '#111', outline: 'none', boxSizing: 'border-box' }
 
@@ -77,7 +77,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   }, [])
 
   // line items
-  const [lineItems, setLineItems]       = useState<LineItem[]>([{ id: 1, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0 }])
+  const [lineItems, setLineItems]       = useState<LineItem[]>([{ id: 1, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0, budgetedAmount: 0 }])
   const [nextId, setNextId]             = useState(2)
 
   // justification
@@ -90,6 +90,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [error, setError]               = useState('')
   const [submitted, setSubmitted]       = useState(false)
   const [ref, setRef]                   = useState('')
+  const [step, setStep]                 = useState(1)
 
   // ── Load jobs ──
   async function loadJobs() {
@@ -110,9 +111,14 @@ export function RequisitionForm({ companyName, onBack }: Props) {
     finally { setLoadingJobs(false) }
   }
 
+  // visible account label helper
+  const accountLabel = lookupEmail ? (
+    <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>Using account: <span style={{ fontWeight: 600 }}>{lookupEmail}</span></div>
+  ) : null
+
   // ── Line item helpers ──
   function addLine() {
-    setLineItems(prev => [...prev, { id: nextId, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0 }])
+    setLineItems(prev => [...prev, { id: nextId, description: '', supplier: '', category: '', qty: 1, days: 1, unitCost: 0, budgetedAmount: 0 }])
     setNextId(n => n + 1)
   }
   function removeLine(id: number) { setLineItems(prev => prev.filter(li => li.id !== id)) }
@@ -120,6 +126,8 @@ export function RequisitionForm({ companyName, onBack }: Props) {
     setLineItems(prev => prev.map(li => li.id === id ? { ...li, [field]: value } : li))
   }
   function lineTotal(li: LineItem) { return li.qty * li.days * li.unitCost }
+  function lineVariance(li: LineItem) { return li.budgetedAmount - lineTotal(li) }
+  function lineStatus(li: LineItem) { const diff = lineVariance(li); return diff >= 0 ? 'Favourable' : 'Adverse' }
   function grandTotal() { return lineItems.reduce((sum, li) => sum + lineTotal(li), 0) }
   function fmt(n: number) { return 'KES ' + n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
@@ -170,48 +178,63 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   return (
     <div>
       {/* ── Job Lookup ── */}
-      {sectionLabel('Job Lookup')}
-      <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
-          <button type="button" onClick={loadJobs} disabled={loadingJobs}
-            style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>
-            {loadingJobs ? 'Loading…' : 'Load Jobs'}
-          </button>
-        </div>
-        {jobMsg && <div style={{ fontSize: 12, color: jobMsgType === 'err' ? '#e74c3c' : '#3B6D11', marginBottom: jobs.length ? 12 : 0 }}>{jobMsg}</div>}
-        {jobs.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {jobs.map((job, i) => {
-              const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
-              return (
-                <div key={i} onClick={() => setSelectedJob(job)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
-                  </div>
-                  {isSelected && <FiCheck size={14} />}
-                </div>
-              )
-            })}
+      {step === 1 && (
+        <>
+          {sectionLabel('Job Lookup')}
+          <div style={{ background: 'rgba(0,0,0,0.02)', border: '0.5px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '16px', marginBottom: 8 }}>
+            {accountLabel}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end', marginBottom: 10 }}>
+              <button type="button" onClick={loadJobs} disabled={loadingJobs}
+                style={{ fontSize: 13, padding: '9px 18px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' as const, opacity: loadingJobs ? 0.6 : 1 }}>
+                {loadingJobs ? 'Loading…' : 'Load Jobs'}
+              </button>
+            </div>
+            {jobMsg && <div style={{ fontSize: 12, color: jobMsgType === 'err' ? '#e74c3c' : '#3B6D11', marginBottom: jobs.length ? 12 : 0 }}>{jobMsg}</div>}
+            {jobs.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                {jobs.map((job, i) => {
+                  const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
+                  return (
+                    <div key={i} onClick={() => { setSelectedJob(job); setJobMsg(''); setJobMsgType('ok'); setStep(2) }}
+                      style={{ padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace', marginBottom: 2 }}>{job['Job_ID']}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
+                        <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Start Date'], job['End Date']].filter(Boolean).join(' · ')}</div>
+                      </div>
+                      {isSelected && <FiCheck size={14} />}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {loadingJobs && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
+                <div style={{ fontSize: 12, color: '#248afd' }}>Fetching your assigned jobs…</div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* ── Job Reference (auto-filled) ── */}
-      {sectionLabel('Job Reference')}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Job ID</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Job_ID'] || ''} placeholder="Select a job above" /></div>
-        <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Client</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Client'] || ''} placeholder="Auto-filled" /></div>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Event / Project Description</div>
-        <input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Description'] || ''} placeholder="Auto-filled" />
-      </div>
+      {step === 2 && (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            <button type="button" onClick={() => { setSelectedJob(null); setStep(1); setJobMsg(''); setJobMsgType('') }} style={{ fontSize: 12, padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#248afd', cursor: 'pointer', marginBottom: 8 }}>← Change job</button>
+          </div>
+          {sectionLabel('Job Reference')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Job ID</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Job_ID'] || ''} placeholder="Select a job above" /></div>
+            <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Client</div><input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Client'] || ''} placeholder="Auto-filled" /></div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Event / Project Description</div>
+            <input style={{ ...inp, opacity: 0.7, background: '#f9f9f9' }} readOnly value={selectedJob?.['Description'] || ''} placeholder="Auto-filled" />
+          </div>
+        </>
+      )}
 
-      {/* ── Requestor ── */}
-      {sectionLabel('Requestor Details')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Name <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="text" value={reqName} onChange={e => setReqName(e.target.value)} placeholder="Full name" /></div>
         <div><div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Your Email <span style={{ color: '#e74c3c' }}>*</span></div><input style={inp} type="email" value={reqEmail} onChange={e => setReqEmail(e.target.value)} placeholder="your.email@company.com" /></div>
@@ -223,44 +246,93 @@ export function RequisitionForm({ companyName, onBack }: Props) {
 
       {/* ── Line Items ── */}
       {sectionLabel('Line Items')}
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Qty × Days × Unit Cost = Row Total</div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Days × Units × Unit Cost = Total Cost</div>
       <div style={{ overflowX: 'auto', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.10)', marginBottom: 4 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
           <thead>
-            <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
-              {['Description', 'Supplier', 'Category', 'Qty', 'Days', 'Unit Cost', 'Total', ''].map(h => (
-                <th key={h} style={{ padding: '9px 8px', textAlign: 'left', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#aaa', whiteSpace: 'nowrap' }}>{h}</th>
+            <tr style={{ background: 'rgba(0,0,0,0.04)', borderBottom: '1px solid rgba(0,0,0,0.12)' }}>
+              {[
+                { label: 'Items', align: 'left' },
+                { label: 'Details', align: 'left' },
+                { label: 'Days', align: 'center' },
+                { label: 'Unit', align: 'center' },
+                { label: 'Unit Cost', align: 'right' },
+                { label: 'Total Cost', align: 'right' },
+                { label: 'Budgeted', align: 'right' },
+                { label: 'Variance', align: 'right' },
+                { label: 'Status', align: 'left' },
+                { label: '', align: 'center' },
+              ].map(({ label, align }) => (
+                <th key={label} style={{ padding: '9px 8px', textAlign: align as any, fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase' as const, color: '#555', fontWeight: 700, whiteSpace: 'nowrap' as const, borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>{label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {lineItems.map(li => (
               <tr key={li.id} style={{ borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-                <td style={{ padding: '6px 6px 6px 8px' }}><input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.description} onChange={e => updateLine(li.id, 'description', e.target.value)} placeholder="Item or service…" /></td>
-                <td style={{ padding: '6px' }}><input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.supplier} onChange={e => updateLine(li.id, 'supplier', e.target.value)} placeholder="Optional" /></td>
-                <td style={{ padding: '6px' }}>
-                  <select style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.category} onChange={e => updateLine(li.id, 'category', e.target.value)}>
-                    <option value="">Category…</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                {/* Items */}
+                <td style={{ padding: '6px 6px 6px 8px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.description} onChange={e => updateLine(li.id, 'description', e.target.value)} placeholder="Line item…" />
                 </td>
-                <td style={{ padding: '6px' }}><input style={{ ...inp, fontSize: 12, padding: '6px 8px', textAlign: 'center', width: 60 }} type="number" min={0} value={li.qty} onChange={e => updateLine(li.id, 'qty', parseFloat(e.target.value) || 0)} /></td>
-                <td style={{ padding: '6px' }}><input style={{ ...inp, fontSize: 12, padding: '6px 8px', textAlign: 'center', width: 60 }} type="number" min={0} value={li.days} onChange={e => updateLine(li.id, 'days', parseFloat(e.target.value) || 0)} /></td>
-                <td style={{ padding: '6px' }}><input style={{ ...inp, fontSize: 12, padding: '6px 8px', width: 100 }} type="number" min={0} step={0.01} value={li.unitCost || ''} onChange={e => updateLine(li.id, 'unitCost', parseFloat(e.target.value) || 0)} placeholder="0.00" /></td>
-                <td style={{ padding: '6px 10px 6px 6px', fontSize: 12, color: '#555', fontFamily: 'monospace', whiteSpace: 'nowrap', textAlign: 'right', minWidth: 90 }}>{lineTotal(li) > 0 ? fmt(lineTotal(li)) : '—'}</td>
+                {/* Details — text input only */}
+                <td style={{ padding: '6px 8px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 8px' }} value={li.supplier} onChange={e => updateLine(li.id, 'supplier', e.target.value)} placeholder="Supplier / details" />
+                </td>
+                {/* Days */}
+                <td style={{ padding: '6px', borderRight: '0.5px solid rgba(0,0,0,0.06)', textAlign: 'center' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 6px', textAlign: 'center', width: 58 }} type="number" min={0} value={li.days} onChange={e => updateLine(li.id, 'days', parseFloat(e.target.value) || 0)} />
+                </td>
+                {/* Unit */}
+                <td style={{ padding: '6px', borderRight: '0.5px solid rgba(0,0,0,0.06)', textAlign: 'center' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 6px', textAlign: 'center', width: 58 }} type="number" min={0} value={li.qty} onChange={e => updateLine(li.id, 'qty', parseFloat(e.target.value) || 0)} />
+                </td>
+                {/* Unit Cost */}
+                <td style={{ padding: '6px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 8px', width: 90, textAlign: 'right' }} type="number" min={0} step={0.01} value={li.unitCost || ''} onChange={e => updateLine(li.id, 'unitCost', parseFloat(e.target.value) || 0)} placeholder="0.00" />
+                </td>
+                {/* Total Cost */}
+                <td style={{ padding: '6px 10px', fontSize: 12, color: '#333', fontFamily: 'monospace', whiteSpace: 'nowrap' as const, textAlign: 'right', minWidth: 90, borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  {lineTotal(li) > 0 ? lineTotal(li).toLocaleString('en-KE') : '—'}
+                </td>
+                {/* Budgeted */}
+                <td style={{ padding: '6px', borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <input style={{ ...inp, fontSize: 12, padding: '6px 8px', width: 100, textAlign: 'right' }} type="number" min={0} step={0.01} value={li.budgetedAmount || ''} onChange={e => updateLine(li.id, 'budgetedAmount', parseFloat(e.target.value) || 0)} placeholder="0.00" />
+                </td>
+                {/* Variance */}
+                <td style={{ padding: '6px 10px', fontSize: 12, color: li.budgetedAmount ? (lineVariance(li) >= 0 ? '#2D7D32' : '#D32F2F') : '#bbb', fontFamily: 'monospace', whiteSpace: 'nowrap' as const, textAlign: 'right', minWidth: 90, borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  {li.budgetedAmount ? lineVariance(li).toLocaleString('en-KE') : '—'}
+                </td>
+                {/* Status */}
+                <td style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: li.budgetedAmount ? (lineVariance(li) >= 0 ? '#2D7D32' : '#D32F2F') : '#bbb', whiteSpace: 'nowrap' as const, borderRight: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  {li.budgetedAmount ? lineStatus(li) : '—'}
+                </td>
+                {/* Delete */}
                 <td style={{ padding: '6px', textAlign: 'center' }}>
                   <button type="button" onClick={() => removeLine(li.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', display: 'flex', alignItems: 'center', padding: 4 }}><FiTrash2 size={13} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr style={{ background: 'rgba(0,0,0,0.03)', borderTop: '1px solid rgba(0,0,0,0.10)' }}>
+              <td colSpan={2} style={{ padding: '9px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#333', borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>Total Requisition</td>
+              <td colSpan={3} style={{ borderRight: '0.5px solid rgba(0,0,0,0.07)' }} />
+              <td style={{ padding: '9px 10px', fontSize: 13, fontWeight: 700, fontFamily: 'monospace', textAlign: 'right', color: '#111', borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>
+                {grandTotal() > 0 ? grandTotal().toLocaleString('en-KE') : '—'}
+              </td>
+              <td style={{ padding: '9px 10px', fontSize: 13, fontWeight: 700, fontFamily: 'monospace', textAlign: 'right', color: '#111', borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>
+                {lineItems.some(li => li.budgetedAmount) ? lineItems.reduce((s, li) => s + li.budgetedAmount, 0).toLocaleString('en-KE') : '—'}
+              </td>
+              <td style={{ padding: '9px 10px', fontSize: 13, fontWeight: 700, fontFamily: 'monospace', textAlign: 'right', background: '#c8e6c9', color: '#1B5E20', borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>
+                {lineItems.some(li => li.budgetedAmount) ? lineItems.reduce((s, li) => s + lineVariance(li), 0).toLocaleString('en-KE') : '—'}
+              </td>
+              <td style={{ padding: '9px 10px', fontSize: 12, fontWeight: 700, color: lineItems.reduce((s, li) => s + lineVariance(li), 0) >= 0 ? '#2D7D32' : '#D32F2F', borderRight: '0.5px solid rgba(0,0,0,0.07)' }}>
+                {lineItems.some(li => li.budgetedAmount) ? (lineItems.reduce((s, li) => s + lineVariance(li), 0) >= 0 ? 'Favourable' : 'Adverse') : '—'}
+              </td>
+              <td />
+            </tr>
+          </tfoot>
         </table>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '12px 16px', background: 'rgba(0,0,0,0.02)', borderTop: '0.5px solid rgba(0,0,0,0.07)' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#aaa', marginBottom: 3 }}>Grand Total</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#111', fontFamily: 'monospace' }}>{fmt(grandTotal())}</div>
-          </div>
-        </div>
       </div>
       <button type="button" onClick={addLine}
         style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', fontSize: 13, padding: '9px', borderRadius: 8, border: '0.5px dashed rgba(0,0,0,0.20)', background: '#fff', color: '#555', cursor: 'pointer', marginTop: 8, marginBottom: 4 }}>
@@ -292,7 +364,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       {error && <div style={{ fontSize: 12, color: '#e74c3c', marginBottom: 12, padding: '10px 14px', background: 'rgba(231,76,60,0.06)', borderRadius: 8 }}>{error}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-        <span style={{ fontSize: 12, color: '#bbb' }}>* required · total = qty × days × unit cost</span>
+        <span style={{ fontSize: 12, color: '#bbb' }}>* required · total = days × units × unit cost</span>
         <button type="button" onClick={submit} disabled={submitting}
           style={{ fontSize: 13, padding: '10px 22px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
           {submitting ? 'Submitting…' : 'Submit Requisition'}

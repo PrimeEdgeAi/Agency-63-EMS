@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
@@ -85,6 +86,7 @@ type Props = { companyName: string; onBack: () => void }
 export function RecceForm({ companyName, onBack }: Props) {
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
+  const [skipStepOne, setSkipStepOne] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(false)
@@ -131,6 +133,24 @@ export function RecceForm({ companyName, onBack }: Props) {
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
+
+  // Auto-populate email from session and attempt job lookup
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const sessionEmail = sessionData?.session?.user?.email ?? ''
+        if (sessionEmail) {
+          setEmail(sessionEmail)
+          setSkipStepOne(true)
+          await findJobs()
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    init()
+  }, [])
 
   // ── Submit ──
   async function submit() {
@@ -184,14 +204,14 @@ export function RecceForm({ companyName, onBack }: Props) {
       <StepBar current={step} total={6} />
 
       {/* Step 1 — Email */}
-      {step === 1 && (
+      {step === 1 && !skipStepOne && (
         <div>
           {sectionLabel('Project Lead Verification')}
           {field('Your Email Address', true,
-            <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.email@company.com" />
+            <div style={{ fontSize: 13, color: '#555' }}>Using your logged-in account email for verification: <span style={{ fontWeight: 600 }}>{email}</span></div>
           )}
           {error && <div style={{ fontSize: 12, color: '#e74c3c', marginBottom: 12 }}>{error}</div>}
-          {navRow(undefined, findJobs, loading ? 'Searching…' : 'Find My Jobs →', loading)}
+              {navRow(undefined, findJobs, loading ? 'Searching…' : 'Find My Jobs →', loading)}
         </div>
       )}
 
@@ -203,7 +223,7 @@ export function RecceForm({ companyName, onBack }: Props) {
             {jobs.map((job, i) => {
               const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
               return (
-                <div key={i} onClick={() => setSelectedJob(job)} style={{ padding: '12px 16px', borderRadius: 10, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={i} onClick={() => { setSelectedJob(job); setError(''); setStep(3) }} style={{ padding: '12px 16px', borderRadius: 10, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 12, color: '#888', fontFamily: 'monospace', marginBottom: 3 }}>{job['Job_ID']}</div>
                     <div style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
@@ -213,6 +233,12 @@ export function RecceForm({ companyName, onBack }: Props) {
                 </div>
               )
             })}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
+                <div style={{ fontSize: 12, color: '#248afd' }}>Searching jobs…</div>
+              </div>
+            )}
           </div>
           {error && <div style={{ fontSize: 12, color: '#e74c3c', marginBottom: 12 }}>{error}</div>}
           {navRow(() => setStep(1), () => { if (!selectedJob) { setError('Please select a job.'); return } setError(''); setStep(3) })}
