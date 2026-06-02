@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { AdminSidebar } from './components/AdminSidebar'
 import { ProposalsPage, type Proposal } from './components/ProposalsPage'
 import { SettingsPage } from './components/SettingsPage'
+import TeamPage from './components/Team'
+import BillingPage from './components/Billing'
 import { supabase } from '../lib/supabase'
 
 const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || '' // configure in env
@@ -9,7 +11,7 @@ const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
 
 function nowIso() { return new Date().toISOString() }
 
-type AdminPage = 'proposals' | 'settings'
+type AdminPage = 'proposals' | 'settings' | 'team' | 'billing'
 
 export function AdminDashboard(props?: { onLogout?: () => void }) {
   const [active, setActive] = useState<AdminPage>('proposals')
@@ -151,6 +153,8 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
           />
         )}
         {active === 'settings' && <SettingsPage />}
+        {active === 'team' && <TeamPage />}
+        {active === 'billing' && <BillingPage />}
       </main>
     </div>
   )

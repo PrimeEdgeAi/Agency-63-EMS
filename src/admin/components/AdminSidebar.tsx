@@ -1,4 +1,6 @@
 import { FiLogOut, FiFileText, FiSettings } from 'react-icons/fi'
+import { MdPeopleAlt } from 'react-icons/md'
+import { TbMoneybag } from 'react-icons/tb'
 
 interface AdminSidebarProps {
   active: string
@@ -10,6 +12,8 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
   const menuItems = [
     { id: 'proposals', label: 'Proposals', icon: FiFileText },
     { id: 'settings', label: 'Settings', icon: FiSettings },
+    { id: 'team', label: 'Team', icon: MdPeopleAlt },
+    { id: 'billing', label: 'Billing', icon: TbMoneybag},
   ]
 
   return (
