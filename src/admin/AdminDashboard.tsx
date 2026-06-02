@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/ui'
+import { AdminSidebar } from '../components/layout/AdminSidebar'
 import { supabase } from '../lib/supabase'
 
 type Proposal = {
@@ -19,7 +20,10 @@ const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
 
 function nowIso() { return new Date().toISOString() }
 
-export function AdminDashboard() {
+type AdminPage = 'proposals' | 'settings'
+
+export function AdminDashboard(props?: { onLogout?: () => void }) {
+  const [active, setActive] = useState<AdminPage>('proposals')
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [title, setTitle] = useState('')
   const [budget, setBudget] = useState('')
@@ -116,49 +120,89 @@ export function AdminDashboard() {
   }
 
   if (accessDenied) return (
-    <div style={{ padding: 24 }}>
-      <h2>Access Denied</h2>
-      <div>You are not authorized to view this page.</div>
+    <div style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div style={{ textAlign: 'center' }}>
+        <h2>Access Denied</h2>
+        <div>You are not authorized to view this page.</div>
+      </div>
     </div>
   )
+
+  const handleLogout = () => {
+    if (props?.onLogout) {
+      props.onLogout()
+    }
+  }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ marginBottom: 12 }}>Admin Dashboard</h2>
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
-        <input placeholder="Proposal title" value={title} onChange={e => setTitle(e.target.value)} style={{ padding: 8, flex: 1 }} />
-        <input placeholder="Budget" value={budget} onChange={e => setBudget(e.target.value)} style={{ padding: 8, width: 140 }} />
-        <input placeholder="File name (optional)" value={fileName} onChange={e => setFileName(e.target.value)} style={{ padding: 8, width: 220 }} />
-        <Button onClick={addProposal}>Upload</Button>
-      </div>
-
-      <div style={{ border: '1px solid #eef2ff', borderRadius: 8, padding: 12 }}>
-        {loading && <div style={{ color: '#6b7280' }}>Loading…</div>}
-        {!loading && proposals.length === 0 && <div style={{ color: '#6b7280' }}>No proposals yet</div>}
-        {proposals.map((p) => (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderBottom: '1px solid #f3f4f6' }}>
-            <div>
-              <div style={{ fontWeight: 700 }}>{p.title} <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>{p.file_name ?? ''}</span></div>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>Budget: KES {p.budget.toLocaleString()} · Submitted: {new Date(p.submitted_at).toLocaleString()}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {p.status === 'approved' ? (
-                <div style={{ background: '#ecfdf5', color: '#166534', padding: '6px 10px', borderRadius: 6, fontWeight: 700 }}>Approved</div>
-              ) : isDelayed(p) ? (
-                <div style={{ background: '#fff1f2', color: '#991b1b', padding: '6px 10px', borderRadius: 6, fontWeight: 700 }}>Delayed</div>
-              ) : (
-                <div style={{ background: '#f8fafc', color: '#374151', padding: '6px 10px', borderRadius: 6, fontWeight: 700 }}>Pending</div>
-              )}
-
-              {p.status !== 'approved' && <Button onClick={() => approve(p.id)}>Mark Approved</Button>}
-              {isDelayed(p) && <Button onClick={() => sendReminder(p.id)}>Send Reminder</Button>}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
+      <AdminSidebar active={active} setActive={(page) => setActive(page as AdminPage)} onLogout={handleLogout} />
+      
+      <main style={{
+        marginLeft: 280,
+        flex: 1,
+        padding: 32,
+        minHeight: '100vh',
+      }}>
+        <PageContent active={active} proposals={proposals} loading={loading} title={title} setTitle={setTitle} budget={budget} setBudget={setBudget} fileName={fileName} setFileName={setFileName} onAddProposal={addProposal} onApprove={approve} onSendReminder={sendReminder} isDelayed={isDelayed} />
+      </main>
     </div>
   )
+}
+
+function PageContent({ active, proposals, loading, title, setTitle, budget, setBudget, fileName, setFileName, onAddProposal, onApprove, onSendReminder, isDelayed }: any) {
+  if (active === 'proposals') {
+    return (
+      <div>
+        <h1 style={{ marginBottom: 24, fontSize: 28, fontWeight: 700, color: '#111' }}>Proposals</h1>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, background: 'white', padding: 20, borderRadius: 12 }}>
+          <input placeholder="Proposal title" value={title} onChange={e => setTitle(e.target.value)} style={{ padding: 10, flex: 1, border: '1px solid #e0e0e0', borderRadius: 8 }} />
+          <input placeholder="Budget" value={budget} onChange={e => setBudget(e.target.value)} style={{ padding: 10, width: 140, border: '1px solid #e0e0e0', borderRadius: 8 }} />
+          <input placeholder="File name (optional)" value={fileName} onChange={e => setFileName(e.target.value)} style={{ padding: 10, width: 220, border: '1px solid #e0e0e0', borderRadius: 8 }} />
+          <Button onClick={onAddProposal}>Upload</Button>
+        </div>
+
+        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #eef2ff', overflow: 'hidden' }}>
+          {loading && <div style={{ color: '#6b7280', padding: 24 }}>Loading…</div>}
+          {!loading && proposals.length === 0 && <div style={{ color: '#6b7280', padding: 24 }}>No proposals yet</div>}
+          {proposals.map((p: any) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#111' }}>{p.title} <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>{p.file_name ?? ''}</span></div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Budget: KES {p.budget.toLocaleString()} · Submitted: {new Date(p.submitted_at).toLocaleString()}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {p.status === 'approved' ? (
+                  <div style={{ background: '#ecfdf5', color: '#166534', padding: '6px 12px', borderRadius: 6, fontWeight: 700, fontSize: 12 }}>Approved</div>
+                ) : isDelayed(p) ? (
+                  <div style={{ background: '#fff1f2', color: '#991b1b', padding: '6px 12px', borderRadius: 6, fontWeight: 700, fontSize: 12 }}>Delayed</div>
+                ) : (
+                  <div style={{ background: '#f8fafc', color: '#374151', padding: '6px 12px', borderRadius: 6, fontWeight: 700, fontSize: 12 }}>Pending</div>
+                )}
+
+                {p.status !== 'approved' && <Button onClick={() => onApprove(p.id)}>Mark Approved</Button>}
+                {isDelayed(p) && <Button onClick={() => onSendReminder(p.id)}>Send Reminder</Button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (active === 'settings') {
+    return (
+      <div>
+        <h1 style={{ marginBottom: 24, fontSize: 28, fontWeight: 700, color: '#111' }}>Settings</h1>
+        <div style={{ background: 'white', padding: 24, borderRadius: 12, maxWidth: 600 }}>
+          <p style={{ color: '#666' }}>Admin settings coming soon…</p>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
 
 export default AdminDashboard

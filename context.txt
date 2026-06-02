@@ -1,0 +1,151 @@
+Project: Event Portal (Agency-63-EMS)
+Path: src/
+Purpose: A small React + Vite TypeScript single-page app for managing events, proposals, requisitions and admin workflows. Uses Supabase for auth and data storage, gh-pages for deployment.
+
+How to use this context file
+- Intended for AI assistants or engineers to quickly understand project structure, runtime behavior, environment variables, build/deploy steps, and Supabase integration points.
+- Includes recommended SQL and code snippets to wire Supabase features.
+
+Quick commands
+- Dev server: npm run dev
+- Build: npm run build
+- Deploy (GitHub Pages): npm run deploy
+- Lint: npm run lint
+
+Important files
+- src/lib/supabase.ts: Supabase client initialization (reads VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY). Centralized supabase object used across app.
+- src/App.tsx: App entry, auth handling, admin routing, `PageRouter` selects `AdminDashboard` when admin user detected.
+- src/admin/AdminDashboard.tsx: Admin UI for proposals (list, approve, send reminders). Uses `supabase.from('proposals')`.
+- src/components/auth/LoginPage.tsx: Sign-in UI (uses Supabase OAuth). Passes signed-in user to app.
+- src/components/modules/*: Business modules (Alcoholic, NonAlcoholic, Requisition form etc.). Requisition uses external webhook and job CSV lookup.
+- src/components/ui: Reusable UI primitives like Spinner and Button.
+- public/: Static assets served as-is. Avoid importing public assets directly from JS; use `/asset.png?url` or move to src/assets when you need imports.
+
+Environment variables (local & production)
+- .env and .env.production contain:
+  - VITE_SUPABASE_URL=https://<project>.supabase.co
+  - VITE_SUPABASE_ANON_KEY=<anon-key>
+- For server-side (CI, serverless) operations requiring elevated privileges use Supabase `service_role` key (DO NOT expose client-side).
+
+Supabase integration notes
+1) Auth
+- App uses `supabase.auth.getSession()` and `supabase.auth.onAuthStateChange()` to track auth state.
+- OAuth redirect URLs must include both the local dev path and the production GitHub Pages path (example below).
+
+2) Data tables used (recommended SQL)
+- Run these in Supabase SQL editor to provision data model and RLS policies.
+
+--- SQL START ---
+-- Admins table (tracks admin emails)
+create table if not exists admins (
+  email text primary key,
+  created_at timestamptz default now()
+);
+
+-- Proposals table
+create extension if not exists "pgcrypto";
+create table if not exists proposals (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  budget numeric not null,
+  submitted_by text not null,
+  submitted_at timestamptz default now(),
+  file_name text,
+  status text default 'pending',
+  approved_at timestamptz,
+  last_reminder_at timestamptz
+);
+
+-- Enable row-level security and policies
+alter table proposals enable row level security;
+
+-- Allow users to insert/select their own proposals (basic example)
+create policy "insert_if_authenticated" on proposals
+  for insert with check (auth.role() = 'authenticated');
+
+create policy "select_if_owner_or_admin" on proposals
+  for select using (submitted_by = auth.email() or exists (select 1 from admins where admins.email = auth.email()));
+
+create policy "admin_update_delete" on proposals
+  for update, delete using (exists (select 1 from admins where admins.email = auth.email()));
+--- SQL END ---
+
+Notes:
+- If `gen_random_uuid()` is unavailable, use `uuid_generate_v4()` or fallback to text id.
+- Insert admin rows (example):
+  insert into admins (email) values ('kevin.n.mongare@gmail.com');
+
+Frontend changes to use DB-driven admin checks
+- Replace `ALLOWED_EMAILS` static array in `src/App.tsx` with a runtime lookup:
+
+Example snippet (inside your auth init after you have `email`):
+
+const { data: adminRow, error } = await supabase
+  .from('admins')
+  .select('email')
+  .eq('email', email)
+  .maybeSingle();
+
+const isAdmin = !!adminRow;
+if (!isAdmin) {
+  await supabase.auth.signOut();
+  setUser(null);
+  setAccessError(ADMIN_ERROR_MESSAGE);
+  setLoading(false);
+  return;
+}
+if (isAdmin) setActive('admin');
+
+Service-side tasks
+- Use service_role key in server-side code (serverless function, GitHub Actions, or small Node service) to perform elevated actions such as:
+  - Mark proposal approved (sensitive updates)
+  - Send reminder emails via external webhook
+  - Seed admin users
+
+Deployment / CI notes
+- Production env values should be set in build environment (`VITE_SUPABASE_*` available at build time). For GitHub Pages via `gh-pages` the build reads `.env.production`.
+- If using GitHub Actions, store `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in repository secrets and inject them into build step.
+- OAuth redirect URL for GitHub Pages: https://PrimeEdgeAi.github.io/Agency-63-EMS/
+
+Testing locally
+1) Ensure `.env` contains Supabase URL + anon key.
+2) Start dev server: `npm run dev` and open `http://localhost:5173/Agency-63-EMS/`.
+3) Sign in with a Google account included in `admins` table and verify admin routing.
+
+All page/entry points (PageRouter in src/App.tsx)
+- dashboard: src/components/dashboard/Dashboard.tsx — main overview with KPIs, event pipeline, recce coverage, claims
+- admin: src/admin/AdminDashboard.tsx — admin-only proposals management
+- events: src/components/events/EventsPage.tsx — create, view, manage events
+- recce: src/components/recce/ReccePage.tsx — venue reconnaissance/inspection requests
+- payrequest: src/components/finance/PayRequestPage.tsx — finance team pay request approval & tracking
+- settings: src/components/settings/SettingsPage.tsx — user profile, system settings
+- help: src/components/help/HelpPage.tsx — FAQs and documentation
+- NonAlcoholic: src/components/modules/NonAlcoholic/NonAlcoholic.tsx — business module for non-alcoholic events (event submission, recce form, requisition form)
+- Alcoholic: src/components/modules/Alcoholic/Alcoholic.tsx — business module for alcoholic events
+
+Key flows and entry points for AI builders
+- Auth flow: `src/lib/supabase.ts` -> `src/App.tsx` (initAuth & onAuthStateChange) -> `PageRouter` routes to appropriate page
+- Admin actions: `src/admin/AdminDashboard.tsx` uses `supabase.from('proposals')` for list/approve/remind
+- Line items & requisitions: `src/components/modules/components/RequisitionForm.tsx` (job CSV lookup, webhook submission)
+- Recce workflow: `src/components/recce/ReccePage.tsx` -> `src/components/modules/components/RecceForm.tsx` (job CSV lookup, multi-step form)
+- Events management: `src/components/events/EventsPage.tsx` lists/filters events, `EventDetail.tsx` shows individual event
+
+Sub-components (reusable)
+- src/components/ui/: Button, Modal, Card, PageHeader, StatusBadge, Input, Select, Textarea, Spinner, etc.
+- src/components/modules/components/: EventSubmission.tsx, RecceForm.tsx, RequisitionForm.tsx (multi-step forms with job CSV lookups)
+- src/components/layout/Sidebar.tsx — user navigation sidebar (not used for admin)
+
+Notes on static assets & imports
+- Avoid importing files from `public/` directly in JS. Use the `src/assets/` folder for imports or reference public assets by root URL.
+
+If you want, I can:
+- Implement the `admins` lookup in `src/App.tsx` and remove the static `ALLOWED_EMAILS` array.
+- Add a small serverless function template for admin-only operations using the service_role key.
+
+Contact / next steps for automation
+- To fully automate CI/CD, create a GitHub Actions workflow that:
+  - Sets `VITE_SUPABASE_*` env vars from secrets
+  - Runs `npm ci`, `npm run build`
+  - Runs `peaceiris/actions-gh-pages` or `gh-pages` to publish `dist/`
+
+EOF

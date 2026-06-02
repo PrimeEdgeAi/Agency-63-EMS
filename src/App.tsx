@@ -150,6 +150,11 @@ export default function App() {
 
   if (!user) return <LoginPage onLogin={setUser} />
 
+  // Admin dashboard has its own layout, don't show regular sidebar for admin
+  if (active === 'admin') {
+    return <PageRouter active={active} setActive={setActive} user={user} onLogout={handleLogout} />
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
@@ -165,10 +170,10 @@ export default function App() {
   )
 }
 
-function PageRouter({ active, setActive, user }: any) {
+function PageRouter({ active, setActive, user, onLogout }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
-    case 'admin': return <AdminDashboard />
+    case 'admin': return <AdminDashboard onLogout={onLogout} />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />
