@@ -49,22 +49,183 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 );
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all" ON employees FOR ALL USING (true);`})]}),(0,R.jsxs)(`button`,{onClick:v,style:{marginTop:14,background:`transparent`,border:`0.5px solid #3ECF8E`,borderRadius:8,padding:`7px 14px`,fontSize:13,color:`#0F6E56`,cursor:`pointer`,display:`flex`,alignItems:`center`,gap:6,fontWeight:500},children:[(0,R.jsx)(to,{size:13}),` Test Connection`]})]}),(0,R.jsxs)(`div`,{style:jc,children:[(0,R.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:10,marginBottom:18},children:[(0,R.jsx)(Tc,{size:20,style:{color:`#0F9D58`}}),(0,R.jsx)(`h2`,{style:{fontSize:16,fontWeight:600,margin:0},children:`Google Sheets`}),(0,R.jsx)(`span`,{style:{fontSize:12,background:`#E8F5E9`,color:`#2E7D32`,padding:`2px 9px`,borderRadius:100,fontWeight:500},children:`Secondary sync`}),(0,R.jsxs)(`div`,{style:{marginLeft:`auto`,display:`flex`,alignItems:`center`,gap:6},children:[(0,R.jsx)(S,{status:d}),d!==`idle`&&(0,R.jsx)(`span`,{style:{fontSize:12,color:d===`success`?`#3B6D11`:d===`error`?`#A32D2D`:`#BA7517`},children:C[d]})]})]}),(0,R.jsxs)(`div`,{children:[(0,R.jsx)(`label`,{style:Ac,children:`Apps Script Web App URL`}),(0,R.jsx)(`input`,{style:kc,placeholder:`https://script.google.com/macros/s/AKfycb.../exec`,value:r.sheetsWebAppUrl,onChange:e=>i({...r,sheetsWebAppUrl:e.target.value})})]}),(0,R.jsxs)(`div`,{style:{marginTop:14},children:[(0,R.jsx)(`p`,{style:{fontSize:12,color:`#888`,margin:`0 0 4px`},children:`Apps Script to paste (Extensions → Apps Script):`}),(0,R.jsx)(`pre`,{style:{background:`#F7FAFF`,border:`0.5px solid #dde8f5`,borderRadius:8,padding:`12px 14px`,fontSize:11,color:`#334`,overflowX:`auto`,margin:0,fontFamily:`monospace`,lineHeight:1.7},children:`function doPost(e) {
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getSheetByName("Employees") ||
-    SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = JSON.parse(e.postData.contents);
-  sheet.clearContents();
-  sheet.appendRow([
-    "ID","Emp ID","Role","Name","National ID",
-    "Join Date","Department","Full-time","Manager ID"
-  ]);
-  data.forEach(emp => sheet.appendRow([
-    emp.id, emp.emp_id, emp.role, emp.name, emp.national_id,
-    emp.join_date, emp.department, emp.full_time, emp.manager_id || ""
-  ]));
-  return ContentService.createTextOutput("OK");
+  try {
+    var ss = SpreadsheetApp.openById("1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE");
+    var body = e.postData && e.postData.contents ? JSON.parse(e.postData.contents) : null;
+
+    if (!body || typeof body !== "object") {
+      return errorResponse("Empty or invalid payload");
+    }
+
+    if (Array.isArray(body)) {
+      writeRoles(ss, body);
+      return successResponse({ status: "ok", type: "roles" });
+    }
+
+    if (!body.type) {
+      return errorResponse("Payload must include a type field.");
+    }
+
+    switch (body.type) {
+      case "event_submission":
+        writeEventSubmission(ss, body.payload || {});
+        break;
+      case "recce":
+        writeRecce(ss, body.payload || {});
+        break;
+      case "requisition":
+        writeRequisition(ss, body.payload || {});
+        break;
+      case "pay_request":
+        writePayRequest(ss, body.request || {});
+        break;
+      case "roles":
+        writeRoles(ss, body.payload || []);
+        break;
+      default:
+        return errorResponse("Unsupported payload type: " + body.type);
+    }
+
+    return successResponse({ status: "ok", type: body.type });
+  } catch (err) {
+    return errorResponse(err.toString());
+  }
 }
+
+function writeRoles(ss, incoming) {
+  var sheet = ss.getSheetByName("Roles");
+  var HEADER = ["ID", "Emp ID", "Role", "Name", "Email", "National ID", "Join Date", "Department", "Full-time", "Manager"];
+  ensureHeader(sheet, HEADER);
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, HEADER.length).clearContent();
+  }
+  incoming.forEach(function(emp) {
+    sheet.appendRow([
+      emp.id || "",
+      emp.emp_id || "",
+      emp.role || "",
+      emp.name || "",
+      emp.email || "",
+      emp.national_id || "",
+      emp.join_date || "",
+      emp.department || "",
+      emp.full_time || "",
+      emp.manager_id || ""
+    ]);
+  });
+}
+
+function writeEventSubmission(ss, payload) {
+  var sheet = ss.getSheetByName("Events");
+  var HEADER = ["Company", "Client", "Status", "Description", "Client Lead", "Project Lead", "Email", "Assistants", "Location", "Start Date", "End Date", "Submitted At"];
+  ensureHeader(sheet, HEADER);
+  sheet.appendRow([
+    payload.company || "",
+    payload.client || "",
+    payload.status || "",
+    payload.description || "",
+    payload.clientLead || "",
+    payload.projectLead || "",
+    payload.email || "",
+    JSON.stringify(payload.assistants || []),
+    payload.location || "",
+    payload.startDate || "",
+    payload.endDate || "",
+    payload.submittedAt || ""
+  ]);
+}
+
+function writeRecce(ss, payload) {
+  var sheet = ss.getSheetByName("Reccee");
+  var HEADER = ["Email", "Job_ID", "Client", "Description", "Reccee Date", "Location", "Attendees", "Distance From Town", "Transport", "Residential Nearby", "Perimeter Wall", "Police Nearby", "Extra Security", "Security Notes", "Medical Nearby", "Medical Notes", "Amenities", "Other Facilities", "Entry Exit", "Event Layout", "Permits", "Challenges", "Company", "Submitted At"];
+  ensureHeader(sheet, HEADER);
+  sheet.appendRow([
+    payload.email || "",
+    payload.job_id || "",
+    payload.client || "",
+    payload.description || "",
+    payload.reccee_date || "",
+    payload.location || "",
+    payload.attendees || "",
+    payload.distance_from_town || "",
+    payload.public_transport || "",
+    payload.residential_nearby || "",
+    payload.perimeter_wall || "",
+    payload.police_nearby || "",
+    payload.extra_security || "",
+    payload.security_notes || "",
+    payload.medical_nearby || "",
+    payload.medical_notes || "",
+    (payload.amenities || []).join(", "),
+    payload.other_facilities || "",
+    payload.entry_exit || "",
+    payload.event_layout || "",
+    payload.permits || "",
+    payload.challenges || "",
+    payload.company || "",
+    payload.submitted_at || ""
+  ]);
+}
+
+function writeRequisition(ss, payload) {
+  var sheet = ss.getSheetByName("Requisition");
+  var HEADER = ["Company", "Job_ID", "Client", "Event Description", "Requestor Name", "Requestor Email", "Date Required", "Line Items", "Total Amount", "Justification", "Notes", "Urgency", "Submitted At"];
+  ensureHeader(sheet, HEADER);
+  sheet.appendRow([
+    payload.company || "",
+    payload.job_id || "",
+    payload.client || "",
+    payload.event_description || "",
+    payload.requestor_name || "",
+    payload.requestor_email || "",
+    payload.date_required || "",
+    JSON.stringify(payload.line_items || []),
+    payload.total_amount || "",
+    payload.justification || "",
+    payload.notes || "",
+    payload.urgency || "",
+    payload.submitted_at || ""
+  ]);
+}
+
+function writePayRequest(ss, request) {
+  var sheet = ss.getSheetByName("Claims Sheet");
+  var HEADER = ["ID", "Event", "Vendor", "Amount", "Status", "Date", "Category"];
+  ensureHeader(sheet, HEADER);
+  sheet.appendRow([
+    request.id || "",
+    request.event || "",
+    request.vendor || "",
+    request.amount || "",
+    request.status || "",
+    request.date || "",
+    request.category || ""
+  ]);
+}
+
+function ensureHeader(sheet, header) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(header);
+  }
+}
+
+function wrapResponse(body, callback) {
+  if (callback) {
+    return ContentService.createTextOutput(callback + "(" + body + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(body)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function successResponse(payload) {
+  return wrapResponse(JSON.stringify(payload), null);
+}
+
+function errorResponse(message) {
+  return wrapResponse(JSON.stringify({ status: "error", message: message }), null);
+}
+
 // Deploy → New deployment → Web App
 // Execute as: Me | Who has access: Anyone`})]}),(0,R.jsxs)(`button`,{onClick:y,style:{marginTop:14,background:`transparent`,border:`0.5px solid #0F9D58`,borderRadius:8,padding:`7px 14px`,fontSize:13,color:`#0F6E56`,cursor:`pointer`,display:`flex`,alignItems:`center`,gap:6,fontWeight:500},children:[(0,R.jsx)(to,{size:13}),` Test Connection`]})]}),(0,R.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:12},children:[(0,R.jsxs)(`button`,{onClick:b,style:{background:s?`#185FA5`:`#B5D4F4`,color:`#fff`,border:`none`,borderRadius:8,padding:`10px 20px`,fontSize:14,fontWeight:600,cursor:s?`pointer`:`not-allowed`,display:`flex`,alignItems:`center`,gap:8,transition:`background 0.15s`},children:[(0,R.jsx)(eo,{size:15}),` Save Changes`]}),h&&(0,R.jsxs)(`span`,{style:{fontSize:13,color:`#3B6D11`,display:`flex`,alignItems:`center`,gap:5},children:[(0,R.jsx)(So,{size:14}),` Settings saved successfully`]})]}),p&&(0,R.jsx)(`div`,{style:{position:`fixed`,inset:0,background:`rgba(0,0,0,0.45)`,display:`flex`,alignItems:`center`,justifyContent:`center`,zIndex:9999},children:(0,R.jsxs)(`div`,{style:{background:`#fff`,borderRadius:14,padding:`28px 30px`,maxWidth:440,width:`90%`,boxShadow:`0 20px 60px rgba(0,0,0,0.2)`},children:[(0,R.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:10,marginBottom:12},children:[(0,R.jsx)(`div`,{style:{background:`#FFF3E0`,borderRadius:8,padding:8},children:(0,R.jsx)(Do,{size:20,style:{color:`#E65100`}})}),(0,R.jsx)(`h2`,{style:{fontSize:17,fontWeight:600,margin:0,color:`#BF360C`},children:`Confirm Configuration Change`})]}),(0,R.jsx)(`p`,{style:{fontSize:14,color:`#444`,lineHeight:1.65,margin:`0 0 20px`},children:`You are about to change live database connection credentials. This will immediately affect all data operations in the Employee module. Ensure you have tested these values and understand the impact before proceeding.`}),(0,R.jsx)(`p`,{style:{fontSize:13,fontWeight:600,color:`#BF360C`,margin:`0 0 20px`},children:`Are you absolutely sure you want to apply these changes?`}),(0,R.jsxs)(`div`,{style:{display:`flex`,gap:10,justifyContent:`flex-end`},children:[(0,R.jsx)(`button`,{onClick:()=>m(!1),style:{background:`transparent`,border:`0.5px solid #ccc`,borderRadius:8,padding:`9px 16px`,fontSize:13,cursor:`pointer`,color:`#333`},children:`Cancel — Go back`}),(0,R.jsxs)(`button`,{onClick:x,style:{background:`#C62828`,border:`none`,borderRadius:8,padding:`9px 16px`,fontSize:13,fontWeight:600,cursor:`pointer`,color:`#fff`,display:`flex`,alignItems:`center`,gap:7},children:[(0,R.jsx)(eo,{size:13}),` Yes, apply changes`]})]})]})})]})},Nc=[`Finance`,`Market`,`Development`,`HR`,`Operations`,`Sales`,`Legal`,`IT`],Pc=`employees`,Fc={finance:{label:`Finance`,color:`#0C447C`,bg:`#E6F1FB`,border:`#B5D4F4`,icon:(0,R.jsx)(wo,{size:12})},manager:{label:`Manager`,color:`#3B6D11`,bg:`#EAF3DE`,border:`#C0DD97`,icon:(0,R.jsx)(Za,{size:12})},agent:{label:`Agent`,color:`#5F5E5A`,bg:`#F1EFE8`,border:`#D3D1C7`,icon:(0,R.jsx)(Ja,{size:12})}},Ic=e=>`EMP-${String(e).padStart(4,`0`)}`,Lc=e=>e.length?Math.max(...e.map(e=>e.id))+1:1,Rc=e=>{let t=new Date(e);return isNaN(t.getTime())?e:t.toLocaleDateString(`en-US`)},zc=e=>{let t=new Date(e);return isNaN(t.getTime())?e:t.toISOString().split(`T`)[0]},Bc=null,Vc=e=>(!Bc&&e.supabaseUrl&&e.supabaseKey&&(Bc=pa(e.supabaseUrl,e.supabaseKey)),Bc),Hc=()=>{Bc=null},Uc={border:`0.5px solid #d0d7e2`,borderRadius:8,padding:`9px 12px`,fontSize:13,width:`100%`,outline:`none`,background:`#fff`,color:`#111`,fontFamily:`inherit`,boxSizing:`border-box`},Wc={fontSize:12,color:`#4a5568`,fontWeight:600,display:`block`,marginBottom:5},Gc={background:`#185FA5`,color:`#fff`,border:`none`,borderRadius:8,padding:`9px 16px`,fontSize:13,fontWeight:500,cursor:`pointer`,display:`flex`,alignItems:`center`,gap:7},Kc={background:`transparent`,border:`0.5px solid #d0d7e2`,borderRadius:8,padding:`9px 14px`,fontSize:13,cursor:`pointer`,display:`flex`,alignItems:`center`,gap:7,color:`#333`},qc={background:`transparent`,border:`0.5px solid #d0d7e2`,borderRadius:8,padding:8,cursor:`pointer`,color:`#555`,display:`flex`,alignItems:`center`,justifyContent:`center`},Jc=({role:e})=>{let t=Fc[e];return(0,R.jsxs)(`span`,{style:{display:`inline-flex`,alignItems:`center`,gap:5,background:t.bg,color:t.color,border:`0.5px solid ${t.border}`,fontSize:11,fontWeight:600,padding:`3px 9px`,borderRadius:100},children:[t.icon,` `,t.label]})},Yc=({message:e,type:t,visible:n})=>(0,R.jsxs)(`div`,{style:{position:`fixed`,bottom:24,right:24,background:{success:`#185FA5`,error:`#A32D2D`,info:`#0C447C`}[t],color:`#fff`,padding:`10px 18px`,borderRadius:8,fontSize:13,fontWeight:500,display:`flex`,alignItems:`center`,gap:8,zIndex:9999,opacity:+!!n,transform:n?`translateY(0)`:`translateY(12px)`,transition:`opacity 0.25s, transform 0.25s`,pointerEvents:`none`},children:[t===`success`?(0,R.jsx)(So,{size:14}):t===`error`?(0,R.jsx)(Oo,{size:14}):null,e]}),Xc=({label:e,count:t,icon:n})=>(0,R.jsx)(`tr`,{children:(0,R.jsx)(`td`,{colSpan:11,style:{background:`#F0F5FC`,padding:`8px 14px`,borderBottom:`0.5px solid #dde8f5`,borderTop:`0.5px solid #dde8f5`},children:(0,R.jsxs)(`span`,{style:{display:`inline-flex`,alignItems:`center`,gap:7,fontSize:12,fontWeight:600,color:`#185FA5`,letterSpacing:`0.04em`,textTransform:`uppercase`},children:[n,` `,e,` `,(0,R.jsxs)(`span`,{style:{fontWeight:400,color:`#888`,fontSize:11},children:[`(`,t,`)`]})]})})}),Zc=({config:e,onSave:t,onBack:n,onTest:r,testing:i})=>{let[a,o]=(0,_.useState)(e.webAppUrl);return(0,R.jsxs)(`div`,{children:[(0,R.jsxs)(`div`,{style:{fontSize:13,color:`#888`,marginBottom:12,display:`flex`,alignItems:`center`,gap:6},children:[(0,R.jsx)(`button`,{onClick:n,style:{background:`none`,border:`none`,color:`#185FA5`,cursor:`pointer`,padding:0,fontSize:13,textDecoration:`underline`},children:`Employees`}),(0,R.jsx)(bo,{size:13}),(0,R.jsx)(`span`,{children:`Google Sheets Settings`})]}),(0,R.jsx)(`h1`,{style:{fontSize:22,fontWeight:600,marginBottom:6},children:`Google Sheets — Data Sync`}),(0,R.jsxs)(`p`,{style:{fontSize:13,color:`#666`,marginBottom:24,lineHeight:1.6},children:[`This script routes form submissions to the correct sheet tabs: `,(0,R.jsx)(`strong`,{children:`Events`}),`, `,(0,R.jsx)(`strong`,{children:`Reccee`}),`, `,(0,R.jsx)(`strong`,{children:`Requisition`}),`, and `,(0,R.jsx)(`strong`,{children:`Claims Sheet`}),`. The Roles tab is also preserved for employee sync.`]}),(0,R.jsxs)(`div`,{style:{background:`#F8FAFE`,border:`0.5px solid #dde8f5`,borderRadius:10,padding:16,marginBottom:20,fontSize:13,lineHeight:1.7},children:[(0,R.jsx)(`div`,{style:{fontWeight:600,color:`#185FA5`,marginBottom:8,fontSize:12,textTransform:`uppercase`,letterSpacing:`0.04em`},children:`Setup Guide`}),(0,R.jsxs)(`ol`,{style:{margin:0,paddingLeft:18,color:`#444`},children:[(0,R.jsxs)(`li`,{children:[`Open your Google Sheet → `,(0,R.jsx)(`strong`,{children:`Extensions → Apps Script`})]}),(0,R.jsxs)(`li`,{children:[`Paste the updated script (with both `,(0,R.jsx)(`code`,{style:{background:`#e8f0fe`,padding:`1px 5px`,borderRadius:4},children:`doPost`}),` and `,(0,R.jsx)(`code`,{style:{background:`#e8f0fe`,padding:`1px 5px`,borderRadius:4},children:`doGet`}),`) from `,(0,R.jsx)(`code`,{children:`GoogleSheetsConnection.ts`})]}),(0,R.jsxs)(`li`,{children:[`Click `,(0,R.jsx)(`strong`,{children:`Deploy → Manage Deployments → edit → New version → Deploy`})]}),(0,R.jsx)(`li`,{children:`Paste the Web App URL below`})]})]}),(0,R.jsxs)(`div`,{style:{maxWidth:560},children:[(0,R.jsx)(`label`,{style:Wc,children:`Apps Script Web App URL`}),(0,R.jsx)(`input`,{style:Uc,placeholder:`https://script.google.com/macros/s/...`,value:a,onChange:e=>o(e.target.value)}),(0,R.jsx)(`p`,{style:{fontSize:11,color:`#999`,marginTop:5},children:`Saved locally in your browser.`})]}),(0,R.jsxs)(`div`,{style:{display:`flex`,gap:10,marginTop:20},children:[(0,R.jsxs)(`button`,{style:Kc,onClick:n,children:[(0,R.jsx)(Eo,{size:14}),` Back`]}),(0,R.jsxs)(`button`,{style:Gc,onClick:()=>t({webAppUrl:a}),children:[(0,R.jsx)(eo,{size:14}),` Save URL`]}),(0,R.jsxs)(`button`,{style:{...Kc,opacity:i?.6:1},onClick:r,disabled:i||!a,children:[i?(0,R.jsx)(ao,{size:14,style:{animation:`spin 1s linear infinite`}}):(0,R.jsx)(So,{size:14}),i?`Testing…`:`Test Sync`]})]})]})},Qc=()=>{let[e,t]=(0,_.useState)(`list`),[n,r]=(0,_.useState)([]),[i,a]=(0,_.useState)(null),[o,s]=(0,_.useState)(``),[c,l]=(0,_.useState)({message:``,type:`success`,visible:!1}),[u,d]=(0,_.useState)(`idle`),[f,p]=(0,_.useState)(`idle`),[m,h]=(0,_.useState)(!1),[g,v]=(0,_.useState)(Dc()),[y,b]=(0,_.useState)(ts()),[x,S]=(0,_.useState)(!1),[C,w]=(0,_.useState)({role:`agent`,name:``,email:``,national_id:``,join_date:new Date().toISOString().split(`T`)[0],department:`Market`,full_time:!0,manager_id:null}),[ee,te]=(0,_.useState)(0),[ne,T]=(0,_.useState)(``),E=(e,t=`success`)=>{l({message:e,type:t,visible:!0}),setTimeout(()=>l(e=>({...e,visible:!1})),3e3)};(0,_.useEffect)(()=>{v(Dc()),b(ts()),Hc()},[]),(0,_.useEffect)(()=>{(async()=>{let e=Vc(g);if(e){d(`syncing`);try{let{data:t,error:n}=await e.from(Pc).select(`*`).order(`id`,{ascending:!0});!n&&t?.length?(r(t),d(`success`)):d(n?`error`:`idle`)}catch{d(`error`)}}})()},[g]);let re=async e=>{let t=ts();if(!t.webAppUrl)return;p(`syncing`);let n=await rs(e,t);p(n.ok?`success`:`error`),n.ok||E(`Sheets sync failed: ${n.error}`,`error`)},ie=async e=>{let t=Vc(g);if(t){d(`syncing`);try{let{error:n}=await t.from(Pc).upsert(e,{onConflict:`id`});d(n?`error`:`success`)}catch{d(`error`)}}await re(e)},ae=async()=>{let e=ts();if(!e.webAppUrl){E(`Google Sheets not configured`,`error`);return}h(!0);let t=await is(e);if(h(!1),!t.ok){E(`Pull failed: ${t.error}`,`error`);return}if(t.employees.length===0){E(`No employees found in sheet`,`info`);return}r(t.employees);let n=Vc(g);if(n)try{await n.from(Pc).upsert(t.employees,{onConflict:`id`})}catch{}E(`Pulled ${t.employees.length} employees from Sheets`)},oe=e=>{ns(e),b(e),E(`Google Sheets URL saved`)},se=async()=>{S(!0);let e=await rs(n,y);S(!1),E(e.ok?`Test sync OK — ${e.rowsSynced} rows pushed`:`Test failed: ${e.error}`,e.ok?`success`:`error`)},ce=()=>{let e=Lc(n);te(e),T(Ic(e)),w({role:`agent`,name:``,email:``,national_id:``,join_date:new Date().toISOString().split(`T`)[0],department:`Market`,full_time:!0,manager_id:null}),a(null),t(`form`)},D=e=>{te(e.id),T(e.emp_id),w({role:e.role,name:e.name,email:e.email,national_id:e.national_id,join_date:zc(e.join_date),department:e.department,full_time:e.full_time,manager_id:e.manager_id}),a(e.id),t(`form`)},O=async()=>{if(!C.name.trim()){E(`Name is required`,`error`);return}if(!C.email.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(C.email)){E(`Valid email is required`,`error`);return}if(!C.national_id.trim()){E(`National ID is required`,`error`);return}if(!C.join_date){E(`Join date is required`,`error`);return}if(C.role===`agent`&&C.manager_id===null){E(`Agents must be assigned a manager`,`error`);return}let e=Rc(C.join_date),a=i===null?[...n,{id:ee,emp_id:ne,...C,join_date:e}]:n.map(t=>t.id===i?{...t,...C,join_date:e}:t);r(a),await ie(a),E(i?`Employee updated`:`Employee created`),t(`list`)},le=async e=>{if(!window.confirm(`Delete this employee?`))return;let t=Vc(g);if(t){d(`syncing`);try{let{error:n}=await t.from(Pc).delete().eq(`id`,e);d(n?`error`:`success`)}catch{d(`error`)}}let i=n.filter(t=>t.id!==e);r(i),await re(i),E(`Employee deleted`)},ue=()=>{let e=[[`ID`,`Emp ID`,`Role`,`Name`,`National ID`,`Join Date`,`Department`,`Full-time`,`Manager ID`],...n.map(e=>[e.id,e.emp_id,e.role,`"${e.name}"`,e.national_id,e.join_date,e.department,e.full_time?`Yes`:`No`,e.manager_id??``])].map(e=>e.join(`,`)).join(`
 `),t=new Blob([e],{type:`text/csv`}),r=document.createElement(`a`);r.href=URL.createObjectURL(t),r.download=`employees.csv`,r.click(),E(`CSV exported`)},de=o.toLowerCase(),fe=n.filter(e=>e.name.toLowerCase().includes(de)||e.department.toLowerCase().includes(de)||e.emp_id.toLowerCase().includes(de)||e.national_id.includes(de)||e.role.includes(de)),pe=fe.filter(e=>e.role===`finance`),k=fe.filter(e=>e.role===`manager`),me=fe.filter(e=>e.role===`agent`),he=n.filter(e=>e.role===`manager`),ge=e=>n.find(t=>t.id===e)?.name??`-`,_e=({status:e})=>e===`idle`?null:(0,R.jsx)(`span`,{style:{width:7,height:7,borderRadius:`50%`,background:{idle:``,syncing:`#BA7517`,success:`#3B6D11`,error:`#A32D2D`}[e],display:`inline-block`,marginLeft:4}}),ve=({e})=>(0,R.jsxs)(`tr`,{style:{borderBottom:`0.5px solid #eef3fb`},children:[(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:(0,R.jsx)(`span`,{style:{background:`#E6F1FB`,color:`#0C447C`,fontSize:11,fontWeight:600,padding:`3px 8px`,borderRadius:100,fontFamily:`monospace`},children:e.id})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:(0,R.jsx)(`span`,{style:{background:`#E6F1FB`,color:`#0C447C`,fontSize:11,fontWeight:600,padding:`3px 8px`,borderRadius:100,fontFamily:`monospace`},children:e.emp_id})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:(0,R.jsx)(Jc,{role:e.role})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`,fontWeight:500},children:e.name}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`,fontSize:12,color:`#555`},children:e.email}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`,fontFamily:`monospace`,fontSize:12,color:`#555`},children:e.national_id}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`,color:`#555`},children:e.join_date}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:(0,R.jsx)(`span`,{style:{background:`#fff`,border:`0.5px solid #ccc`,borderRadius:100,fontSize:12,padding:`3px 10px`},children:e.department})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:e.full_time?(0,R.jsx)(xo,{size:16,style:{color:`#185FA5`}}):(0,R.jsx)(Ga,{size:16,style:{color:`#bbb`}})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`,fontSize:13,color:e.manager_id?`#185FA5`:`#bbb`},children:e.role===`agent`?ge(e.manager_id):(0,R.jsx)(`span`,{style:{color:`#ccc`,fontSize:12},children:`—`})}),(0,R.jsx)(`td`,{style:{padding:`12px 14px`},children:(0,R.jsxs)(`div`,{style:{display:`flex`,gap:5,justifyContent:`flex-end`},children:[(0,R.jsx)(`button`,{style:{...qc,color:`#185FA5`,border:`0.5px solid #B5D4F4`},onClick:()=>D(e),title:`Edit`,children:(0,R.jsx)(H,{size:13})}),(0,R.jsx)(`button`,{style:{...qc,color:`#A32D2D`,border:`0.5px solid #F7C1C1`},onClick:()=>le(e.id),title:`Delete`,children:(0,R.jsx)(Ya,{size:13})})]})})]});return(0,R.jsxs)(`div`,{style:{fontFamily:`'DM Sans', 'Segoe UI', sans-serif`,background:`#fff`,minHeight:`100vh`,padding:`24px 28px`,color:`#111`},children:[(0,R.jsx)(`style`,{children:`
