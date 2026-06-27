@@ -15,6 +15,7 @@ export interface AppUser {
 export type PageId =
   | 'dashboard'
   | 'admin'
+  | 'manager'
   | 'UniCorns'
   | 'One Off'
   | 'Alcoholic'
@@ -44,6 +45,10 @@ export interface EventItem {
   category: string
   story: string
   image: string
+  job_id?: string
+  projectAssistant?: string
+  projectAssistantEmail?: string
+  projectStatus?: string
 }
 
 // ─── Recce ───────────────────────────────────────────────────────────────────
@@ -58,6 +63,7 @@ export interface RecceItem {
   date: string
   status: RecceStatus
   notes: string
+  job_id?: string
 }
 
 // ─── Pay Requests ─────────────────────────────────────────────────────────────

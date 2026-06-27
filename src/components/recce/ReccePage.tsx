@@ -1,22 +1,85 @@
-import { useState } from 'react'
-import { RECCE_DATA, EVENTS_DATA } from '../../data'
+import { useEffect, useState } from 'react'
+import { getEventsData, getRecceData, subscribeData, addRecce, completeRecce, syncSheetDataToLocalStore } from '../../data'
 import { StatusBadge, Card, PageHeader, Button, Modal, Field, Input, Textarea, Select } from '../ui'
 
 export function ReccePage() {
   const [showForm, setShowForm] = useState(false)
+  const [events, setEvents] = useState(() => getEventsData())
+  const [recces, setRecces] = useState(() => getRecceData())
+  const [formData, setFormData] = useState({
+    event: events[0]?.title ?? '',
+    venue: '',
+    requestedBy: '',
+    date: '',
+    notes: '',
+  })
+  const [syncMessage, setSyncMessage] = useState('')
+
+  useEffect(() => {
+    const unsubscribe = subscribeData(() => {
+      setEvents(getEventsData())
+      setRecces(getRecceData())
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      const result = await syncSheetDataToLocalStore()
+      if (!result.ok) {
+        setSyncMessage(`Sheet sync failed: ${result.error}`)
+        return
+      }
+      setSyncMessage('Recce and event data synced from Google Sheets.')
+    }
+    load()
+  }, [])
 
   const stats = [
-    { label: 'Total Recces',  value: RECCE_DATA.length,                                    icon: '⊕' },
-    { label: 'Approved',      value: RECCE_DATA.filter((r) => r.status === 'approved').length, icon: '✓' },
-    { label: 'Completed',     value: RECCE_DATA.filter((r) => r.status === 'completed').length, icon: '◈' },
-    { label: 'Pending',       value: RECCE_DATA.filter((r) => r.status === 'pending').length,  icon: '⏳' },
+    { label: 'Total Recces', value: recces.length, icon: '⊕' },
+    { label: 'Approved', value: recces.filter((r) => r.status === 'approved').length, icon: '✓' },
+    { label: 'Completed', value: recces.filter((r) => r.status === 'completed').length, icon: '◈' },
+    { label: 'Pending', value: recces.filter((r) => r.status === 'pending').length, icon: '⏳' },
   ]
+
+  const handleSubmit = () => {
+    if (!formData.event || !formData.venue || !formData.requestedBy || !formData.date) {
+      alert('Please complete the recce request form before submitting.')
+      return
+    }
+
+    addRecce({
+      event: formData.event,
+      venue: formData.venue,
+      requestedBy: formData.requestedBy,
+      date: formData.date,
+      notes: formData.notes,
+    })
+    setFormData({
+      event: events[0]?.title ?? '',
+      venue: '',
+      requestedBy: '',
+      date: '',
+      notes: '',
+    })
+    setShowForm(false)
+  }
+
+  const handleComplete = (id: string) => {
+    completeRecce(id)
+  }
 
   return (
     <div className="animate-fade-in">
       <PageHeader section="Business Modules" title="Recce Requisition">
         <Button onClick={() => setShowForm(true)}>+ New Requisition</Button>
       </PageHeader>
+
+      {syncMessage && (
+        <div style={{ marginBottom: 20, padding: '14px 18px', borderRadius: 14, background: '#eef2ff', border: '1px solid #c7d2fe', color: '#1e3a8a' }}>
+          {syncMessage}
+        </div>
+      )}
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 32 }}>
@@ -43,17 +106,17 @@ export function ReccePage() {
           }}
         >
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111' }}>All Requisitions</h3>
-          <span style={{ fontSize: 12, color: '#ccc' }}>{RECCE_DATA.length} records</span>
+          <span style={{ fontSize: 12, color: '#ccc' }}>{recces.length} records</span>
         </div>
 
-        {RECCE_DATA.map((r, i) => (
+        {recces.map((r, i) => (
           <div
             key={r.id}
             style={{
               padding: '20px 28px',
-              borderBottom: i < RECCE_DATA.length - 1 ? '1px solid #fafafa' : 'none',
+              borderBottom: i < recces.length - 1 ? '1px solid #fafafa' : 'none',
               display: 'grid',
-              gridTemplateColumns: '44px 1fr auto 80px',
+              gridTemplateColumns: '44px 1fr auto 140px',
               gap: 16,
               alignItems: 'center',
             }}
@@ -85,7 +148,18 @@ export function ReccePage() {
                 </div>
               )}
             </div>
-            <StatusBadge status={r.status} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+              <StatusBadge status={r.status} />
+              {r.status === 'pending' ? (
+                <Button variant="secondary" style={{ padding: '8px 12px', fontSize: 12 }} onClick={() => handleComplete(r.id)}>
+                  Mark Completed
+                </Button>
+              ) : r.status === 'completed' ? (
+                <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'right' }}>
+                  Awaiting manager approval
+                </div>
+              ) : null}
+            </div>
             <span style={{ fontSize: 11, color: '#ccc', fontWeight: 700, textAlign: 'right' }}>{r.id}</span>
           </div>
         ))}
@@ -94,28 +168,50 @@ export function ReccePage() {
       {showForm && (
         <Modal title="New Recce Requisition" onClose={() => setShowForm(false)} width={520}>
           <Field label="Select Event">
-            <Select>
+            <Select
+              value={formData.event}
+              onChange={(e) => setFormData((prev) => ({ ...prev, event: e.target.value }))}
+            >
               <option value="">Choose event…</option>
-              {EVENTS_DATA.map((e) => <option key={e.id}>{e.title}</option>)}
+              {events.map((e) => (
+                <option key={e.id} value={e.title}>{e.title}</option>
+              ))}
             </Select>
           </Field>
           <Field label="Venue Name">
-            <Input placeholder="e.g. KICC Main Hall" />
+            <Input
+              value={formData.venue}
+              placeholder="e.g. KICC Main Hall"
+              onChange={(e) => setFormData((prev) => ({ ...prev, venue: e.target.value }))}
+            />
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Recce Date">
-              <Input type="date" />
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+              />
             </Field>
             <Field label="Requested By">
-              <Input placeholder="Full name" />
+              <Input
+                value={formData.requestedBy}
+                placeholder="Full name"
+                onChange={(e) => setFormData((prev) => ({ ...prev, requestedBy: e.target.value }))}
+              />
             </Field>
           </div>
           <Field label="Purpose / Notes">
-            <Textarea rows={3} placeholder="Describe what needs to be inspected…" />
+            <Textarea
+              rows={3}
+              placeholder="Describe what needs to be inspected…"
+              value={formData.notes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+            />
           </Field>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
             <Button variant="secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button variant="primary" style={{ flex: 2 }} onClick={() => setShowForm(false)}>Submit Requisition</Button>
+            <Button variant="primary" style={{ flex: 2 }} onClick={handleSubmit}>Submit Requisition</Button>
           </div>
         </Modal>
       )}

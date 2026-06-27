@@ -14,11 +14,18 @@ import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 import AdminDashboard from './admin/AdminDashboard'
+import ManagerDashboard from './manager/ManagerDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
   "ericmunene1410@gmail.com",
-  "kevin.n.mongare@gmail.com"
+  "kevin.n.mongare@gmail.com",
+  "theafricanpulsepod@gmail.com",
+]
+
+const MANAGER_EMAILS = [
+  "ericmunene1410@gmail.com",
+  "theafricanpulsepod@gmail.com",
 ]
 
 // 🔥 NEW: admin access error state message
@@ -62,8 +69,9 @@ export default function App() {
 
             setUser(appUser)
 
-            // If this is the admin email, open admin dashboard by default
+            // If this is the admin or manager email, open the proper dashboard by default
             if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
+            if (MANAGER_EMAILS.includes(email)) setActive('manager')
           } else {
             setUser(null)
           }
@@ -101,6 +109,7 @@ export default function App() {
           setUser(appUser)
 
           if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
+          if (MANAGER_EMAILS.includes(email)) setActive('manager')
         } else {
           setUser(null)
         }
@@ -150,8 +159,8 @@ export default function App() {
 
   if (!user) return <LoginPage onLogin={setUser} />
 
-  // Admin dashboard has its own layout, don't show regular sidebar for admin
-  if (active === 'admin') {
+  // Admin and manager dashboards have their own layout, don't show the regular sidebar for them
+  if (active === 'admin' || active === 'manager') {
     return <PageRouter active={active} setActive={setActive} user={user} onLogout={handleLogout} />
   }
 
@@ -174,6 +183,7 @@ function PageRouter({ active, setActive, user, onLogout }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
     case 'admin': return <AdminDashboard onLogout={onLogout} />
+    case 'manager': return <ManagerDashboard onLogout={onLogout} />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />

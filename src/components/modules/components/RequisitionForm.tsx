@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
+import { pushDataToGoogleSheets } from '../../../data'
 
-const SHEET_CSV_URL       = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
-const REQUISITION_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/requisition-request'
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 
 // const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
 const URGENCY    = ['Low', 'Medium', 'High', 'Urgent']
@@ -156,11 +156,13 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       submitted_at:      new Date().toISOString(),
     }
     try {
-      await fetch(REQUISITION_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await pushDataToGoogleSheets({ type: 'requisition', payload })
+      if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setRef('REQ-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
-    } catch { setError('Submission failed. Please try again.') }
-    finally { setSubmitting(false) }
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
+    } finally { setSubmitting(false) }
   }
 
   // ── Success ──

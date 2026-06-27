@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
-
-const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/your-webhook-id' // 🔗 Replace with your n8n URL
+import { pushDataToGoogleSheets } from '../../../data'
 
 const STATUS_OPTIONS = [
   'Project Creation',
@@ -68,10 +67,9 @@ export function EventSubmission({ companyName, onBack }: Props) {
     setError('')
     setSubmitting(true)
     try {
-      await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const result = await pushDataToGoogleSheets({
+        type: 'event_submission',
+        payload: {
           company: companyName,
           client,
           status,
@@ -84,11 +82,12 @@ export function EventSubmission({ companyName, onBack }: Props) {
           startDate,
           endDate,
           submittedAt: new Date().toISOString(),
-        }),
+        },
       })
+      if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setSubmitted(true)
-    } catch {
-      setError('Submission failed. Please try again.')
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
     } finally {
       setSubmitting(false)
     }

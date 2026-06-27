@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { FiGrid, FiStar, FiZap, FiCoffee, FiDroplet, FiChevronRight, FiLogOut, FiHelpCircle } from 'react-icons/fi'
+import { FiGrid, FiStar, FiZap, FiCoffee, FiDroplet, FiChevronRight, FiLogOut, FiHelpCircle, FiShield } from 'react-icons/fi'
 import type { PageId, AppUser } from '../../types'
 import { GiMoneyStack, GiOnTarget } from 'react-icons/gi'
 import { TbReportSearch } from 'react-icons/tb'
@@ -48,6 +48,7 @@ const NAV: NavSection[] = [
     section: 'Settings',
     items: [
       { id: 'admin', label: 'Admin', icon: <TbReportSearch /> },
+      { id: 'manager', label: 'Manager', icon: <FiShield /> },
       { id: 'settings', label: 'Settings', icon: <IoSettingsOutline /> },
       { id: 'help',     label: 'Help',     icon: <FiHelpCircle /> },
     ],
@@ -199,9 +200,12 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
               {isOpen &&
                 section.items
                   .filter((item) => {
-                    // hide Admin item unless the logged-in user is the configured admin
+                    // hide admin and manager items unless the logged-in user is authorized
                     if (item.id === 'admin') {
                       return user.email === 'kevin.n.mongare@gmail.com'
+                    }
+                    if (item.id === 'manager') {
+                      return ['ericmunene1410@gmail.com', 'theafricanpulsepod@gmail.com'].includes(user.email)
                     }
                     return true
                   })

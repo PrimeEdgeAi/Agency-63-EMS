@@ -1,22 +1,17 @@
-import { FiLogOut, FiFileText, FiSettings, FiBarChart2 } from 'react-icons/fi'
-import { MdPeopleAlt } from 'react-icons/md'
-import { TbMoneybag } from 'react-icons/tb'
-import { FaDatabase } from 'react-icons/fa'
+import { FiFileText, FiSettings, FiBarChart2, FiUsers, FiLogOut } from 'react-icons/fi'
 
-interface AdminSidebarProps {
+interface ManagerSidebarProps {
   active: string
   setActive: (page: string) => void
   onLogout: () => void
 }
 
-export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps) {
+export function ManagerSidebar({ active, setActive, onLogout }: ManagerSidebarProps) {
   const menuItems = [
-    { id: 'overview',        label: 'Overview',        icon: FiBarChart2  },  // ← new
-    { id: 'proposals',       label: 'Proposals',       icon: FiFileText   },
-    { id: 'settings',        label: 'Settings',        icon: FiSettings   },
-    { id: 'team',            label: 'Team',            icon: MdPeopleAlt  },
-    { id: 'billing',         label: 'Billing',         icon: TbMoneybag   },
-    { id: 'db-connections',  label: 'DB Connections',  icon: FaDatabase   },
+    { id: 'overview', label: 'Overview', icon: FiBarChart2 },
+    { id: 'agents', label: 'My Agents', icon: FiUsers },
+    { id: 'proposals', label: 'Proposals', icon: FiFileText },
+    { id: 'settings', label: 'Settings', icon: FiSettings },
   ]
 
   return (
@@ -30,7 +25,6 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
       height: '100vh',
       boxShadow: '0 4px 12px rgba(36, 138, 253, 0.15)',
     }}>
-      {/* Header */}
       <div style={{
         padding: '24px 20px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
@@ -44,11 +38,10 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
           margin: 0,
           fontFamily: 'Georgia, serif',
         }}>
-          Admin Portal
+          Manager Portal
         </h2>
       </div>
 
-      {/* Navigation */}
       <nav style={{
         flex: 1,
         padding: '16px 0',
@@ -56,7 +49,7 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
         flexDirection: 'column',
         gap: 4,
       }}>
-        {menuItems.map(item => {
+        {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = active === item.id
           return (
@@ -93,7 +86,6 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
         })}
       </nav>
 
-      {/* Logout */}
       <div style={{
         padding: '16px 20px',
         borderTop: '1px solid rgba(255, 255, 255, 0.15)',

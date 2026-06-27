@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
+// import { FiBarChart2 } from 'react-icons/fi'
 import { AdminSidebar } from './components/AdminSidebar'
 import { ProposalsPage, type Proposal } from './components/ProposalsPage'
 import { SettingsPage } from './components/SettingsPage'
 import TeamPage from './components/Team'
 import BillingPage from './components/Billing'
+import DBConnections from './components/DBConnections'
+import { OverviewPage } from './components//OverviewPage'
 import { supabase } from '../lib/supabase'
+import { loadGoogleSheetsConfig } from './components/GoogleSheetsConnection'
 
-const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || '' // configure in env
+const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || ''
 const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
 
 function nowIso() { return new Date().toISOString() }
 
-type AdminPage = 'proposals' | 'settings' | 'team' | 'billing'
+// ── Add 'overview' to the page union ─────────────────────────────────────────
+type AdminPage = 'overview' | 'proposals' | 'settings' | 'team' | 'billing' | 'db-connections'
 
 export function AdminDashboard(props?: { onLogout?: () => void }) {
-  const [active, setActive] = useState<AdminPage>('proposals')
+  const [active, setActive] = useState<AdminPage>('overview')   // ← default to overview
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [title, setTitle] = useState('')
   const [budget, setBudget] = useState('')
@@ -22,10 +27,16 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
   const [loading, setLoading] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
 
+  // Read the Sheets URL from the same localStorage key GoogleSheetsConnection uses
+  const sheetsUrl = loadGoogleSheetsConfig().webAppUrl
+
   async function loadProposals() {
     setLoading(true)
     try {
-      const { data, error } = await supabase.from('proposals').select('*').order('submitted_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .order('submitted_at', { ascending: false })
       if (error) throw error
       setProposals((data || []) as Proposal[])
     } catch (e: any) {
@@ -61,7 +72,11 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
         file_name: fileName || null,
         status: 'pending',
       }
-      const { data, error } = await supabase.from('proposals').insert(payload).select().single()
+      const { data, error } = await supabase
+        .from('proposals')
+        .insert(payload)
+        .select()
+        .single()
       if (error) throw error
       setProposals((s) => [data as Proposal, ...s])
       setTitle(''); setBudget(''); setFileName('')
@@ -73,7 +88,12 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
 
   async function approve(id: string) {
     try {
-      const { data, error } = await supabase.from('proposals').update({ status: 'approved', approved_at: nowIso() }).eq('id', id).select().single()
+      const { data, error } = await supabase
+        .from('proposals')
+        .update({ status: 'approved', approved_at: nowIso() })
+        .eq('id', id)
+        .select()
+        .single()
       if (error) throw error
       setProposals((s) => s.map(p => p.id === id ? (data as Proposal) : p))
     } catch (e: any) {
@@ -86,15 +106,24 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
     try {
       const p = proposals.find(x => x.id === id)
       if (!p) return
-      // call external webhook to trigger email / reminder
       if (REMINDER_WEBHOOK) {
         await fetch(REMINDER_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ proposalId: id, title: p.title, budget: p.budget, submitted_by: p.submitted_by }),
+          body: JSON.stringify({
+            proposalId: id,
+            title: p.title,
+            budget: p.budget,
+            submitted_by: p.submitted_by,
+          }),
         })
       }
-      const { data, error } = await supabase.from('proposals').update({ last_reminder_at: nowIso() }).eq('id', id).select().single()
+      const { data, error } = await supabase
+        .from('proposals')
+        .update({ last_reminder_at: nowIso() })
+        .eq('id', id)
+        .select()
+        .single()
       if (error) throw error
       setProposals((s) => s.map(pp => pp.id === id ? (data as Proposal) : pp))
       alert('Reminder sent')
@@ -120,22 +149,27 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
   )
 
   const handleLogout = () => {
-    if (props?.onLogout) {
-      props.onLogout()
-    }
+    if (props?.onLogout) props.onLogout()
   }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
-      <AdminSidebar active={active} setActive={(page) => setActive(page as AdminPage)} onLogout={handleLogout} />
-      
+      <AdminSidebar
+        active={active}
+        setActive={(page) => setActive(page as AdminPage)}
+        onLogout={handleLogout}
+      />
+
       <main style={{
         marginLeft: 280,
         flex: 1,
-        padding: 32,
+        padding: active === 'overview' ? 0 : 32,  // overview handles its own padding
         minHeight: '100vh',
         maxWidth: 1400,
       }}>
+        {active === 'overview' && (
+          <OverviewPage sheetsWebAppUrl={sheetsUrl || undefined} />
+        )}
         {active === 'proposals' && (
           <ProposalsPage
             proposals={proposals}
@@ -155,6 +189,7 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
         {active === 'settings' && <SettingsPage />}
         {active === 'team' && <TeamPage />}
         {active === 'billing' && <BillingPage />}
+        {active === 'db-connections' && <DBConnections />}
       </main>
     </div>
   )

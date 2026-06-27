@@ -1,4 +1,102 @@
 import type { EventItem, RecceItem, PayRequest } from '../types'
+import { loadGoogleSheetsConfig } from '../admin/components/GoogleSheetsConnection'
+
+type DataListener = () => void
+const dataListeners = new Set<DataListener>()
+
+interface SheetEvent {
+  Job_ID: string
+  Description: string
+  Client: string
+  Status: string
+  Client_Lead: string
+  Project_Lead: string
+  Email: string
+  Where: string
+  Start_Date: string
+  End_Date: string
+}
+
+interface SheetRequisition {
+  Job_ID: string
+  Supplier: string
+  Category: string
+  Description: string
+  Qty: number
+  Unit_Cost: number
+  Days: number
+  Total: number
+}
+
+interface SheetDashboardData {
+  events: SheetEvent[]
+  claims?: unknown[]
+  requisitions: SheetRequisition[]
+  roles?: unknown[]
+}
+
+function normalizeSheetEventStatus(status: string): EventItem['status'] {
+  if (/completed|done|finished/i.test(status)) return 'completed'
+  if (/planning|update|launch|creation/i.test(status)) return 'planning'
+  return 'upcoming'
+}
+
+function mapSheetEvents(events: SheetEvent[]): EventItem[] {
+  return events.map((event, index) => ({
+    id: index + 1,
+    title: event.Description || event.Job_ID || `Event ${index + 1}`,
+    date: event.Start_Date || event.End_Date || '',
+    location: event.Where || 'Unknown location',
+    status: normalizeSheetEventStatus(event.Status || ''),
+    attendees: 0,
+    budget: 0,
+    category: event.Status || 'Event',
+    story: event.Description || 'Imported from Google Sheets',
+    image: event.Status && event.Status.toLowerCase().includes('update') ? '🔁' : '📅',
+  }))
+}
+
+function mapSheetRequisitions(requisitions: SheetRequisition[]): RecceItem[] {
+  return requisitions.map((req, index) => ({
+    id: `RR-SHEET-${String(index + 1).padStart(3, '0')}`,
+    event: req.Job_ID || req.Description || `Requisition ${index + 1}`,
+    venue: req.Supplier || req.Category || 'Unknown vendor',
+    requestedBy: req.Description || 'Sheet import',
+    date: '',
+    status: 'pending',
+    notes: `Total: KES ${Number(req.Total || 0).toLocaleString()}`,
+  }))
+}
+
+function notifyData() {
+  dataListeners.forEach((listener) => listener())
+}
+
+export function subscribeData(listener: DataListener) {
+  dataListeners.add(listener)
+  return () => {
+    dataListeners.delete(listener)
+  }
+}
+
+export async function pushDataToGoogleSheets(payload: unknown) {
+  const config = loadGoogleSheetsConfig()
+  if (!config.webAppUrl) {
+    return { ok: false, error: 'Google Sheets Web App URL is not configured.' }
+  }
+
+  try {
+    await fetch(config.webAppUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Network error' }
+  }
+}
 
 export const APPROVED_EMAILS: string[] = [
   'admin@company.com',
@@ -6,7 +104,7 @@ export const APPROVED_EMAILS: string[] = [
   'demo@eventportal.com',
 ]
 
-export const EVENTS_DATA: EventItem[] = [
+export let EVENTS_DATA: EventItem[] = [
   {
     id: 1,
     title: 'Nairobi Tech Summit 2025',
@@ -105,7 +203,7 @@ export const EVENTS_DATA: EventItem[] = [
   },
 ]
 
-export const RECCE_DATA: RecceItem[] = [
+export let RECCE_DATA: RecceItem[] = [
   {
     id: 'RR-001',
     event: 'Nairobi Tech Summit 2025',
@@ -144,7 +242,7 @@ export const RECCE_DATA: RecceItem[] = [
   },
 ]
 
-export const PAY_REQUESTS: PayRequest[] = [
+export let PAY_REQUESTS: PayRequest[] = [
   {
     id: 'PR-001',
     event: 'Nairobi Tech Summit 2025',
@@ -200,3 +298,99 @@ export const PAY_REQUESTS: PayRequest[] = [
     category: 'Venue',
   },
 ]
+
+export function getEventsData() {
+  return EVENTS_DATA
+}
+
+export function getRecceData() {
+  return RECCE_DATA
+}
+
+export function getPayRequestsData() {
+  return PAY_REQUESTS
+}
+
+export async function syncSheetDataToLocalStore() {
+  const config = loadGoogleSheetsConfig()
+  if (!config.webAppUrl) {
+    return { ok: false, error: 'Google Sheets Web App URL is not configured.' }
+  }
+
+  try {
+    const response = await fetch(config.webAppUrl)
+    if (!response.ok) {
+      return { ok: false, error: `Google Sheets fetch failed (${response.status})` }
+    }
+
+    const data = (await response.json()) as SheetDashboardData
+    if (!data?.events || !data?.requisitions) {
+      return { ok: false, error: 'Google Sheets response did not include valid events and requisitions.' }
+    }
+
+    EVENTS_DATA = mapSheetEvents(data.events)
+    RECCE_DATA = mapSheetRequisitions(data.requisitions)
+    notifyData()
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unable to fetch Google Sheets data.' }
+  }
+}
+
+export function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
+  const id = `RR-${String(RECCE_DATA.length + 1).padStart(3, '0')}`
+  const newRecce: RecceItem = {
+    ...requisition,
+    id,
+    status: 'pending',
+  }
+  RECCE_DATA = [...RECCE_DATA, newRecce]
+  notifyData()
+  return newRecce
+}
+
+export function completeRecce(id: string) {
+  const recce = RECCE_DATA.find((item) => item.id === id)
+  if (!recce) return undefined
+
+  RECCE_DATA = RECCE_DATA.filter((item) => item.id !== id)
+  EVENTS_DATA = EVENTS_DATA.filter((event) => event.title !== recce.event)
+  notifyData()
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('BtlRecceCompleted', { detail: { id: recce.id, event: recce.event } }))
+  }
+
+  return recce
+}
+
+export function approveRecce(id: string) {
+  const recce = RECCE_DATA.find((item) => item.id === id)
+  if (!recce) return undefined
+
+  RECCE_DATA = RECCE_DATA.map((item) =>
+    item.id === id ? { ...item, status: 'approved' } : item
+  )
+  notifyData()
+  return RECCE_DATA.find((item) => item.id === id)
+}
+
+export function addPayRequest(request: Omit<PayRequest, 'id'>) {
+  const id = `PR-${String(PAY_REQUESTS.length + 1).padStart(3, '0')}`
+  const newRequest: PayRequest = { id, ...request }
+  PAY_REQUESTS = [...PAY_REQUESTS, newRequest]
+  notifyData()
+  return newRequest
+}
+
+export function updatePayRequest(id: string, updates: Partial<Omit<PayRequest, 'id'>>) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, ...updates } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
+}
+
+export function findPayRequestByEvent(event: string) {
+  return PAY_REQUESTS.find((request) => request.event === event)
+}
