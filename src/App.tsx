@@ -15,17 +15,23 @@ import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 import AdminDashboard from './admin/AdminDashboard'
 import ManagerDashboard from './manager/ManagerDashboard'
+import FinanceDashboard from './finance/FinanceDashboard'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
   "ericmunene1410@gmail.com",
   "kevin.n.mongare@gmail.com",
   "theafricanpulsepod@gmail.com",
+  "kennedymongaremirambo@gmail.com",
 ]
 
 const MANAGER_EMAILS = [
   "ericmunene1410@gmail.com",
   "theafricanpulsepod@gmail.com",
+]
+
+const FINANCE_EMAILS = [
+  "kennedymongaremirambo@gmail.com",
 ]
 
 // 🔥 NEW: admin access error state message
@@ -71,7 +77,8 @@ export default function App() {
 
             // If this is the admin or manager email, open the proper dashboard by default
             if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
-            if (MANAGER_EMAILS.includes(email)) setActive('manager')
+            else if (MANAGER_EMAILS.includes(email)) setActive('manager')
+            else if (FINANCE_EMAILS.includes(email)) setActive('finance')
           } else {
             setUser(null)
           }
@@ -109,7 +116,8 @@ export default function App() {
           setUser(appUser)
 
           if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
-          if (MANAGER_EMAILS.includes(email)) setActive('manager')
+          else if (MANAGER_EMAILS.includes(email)) setActive('manager')
+          else if (FINANCE_EMAILS.includes(email)) setActive('finance')
         } else {
           setUser(null)
         }
@@ -159,8 +167,8 @@ export default function App() {
 
   if (!user) return <LoginPage onLogin={setUser} />
 
-  // Admin and manager dashboards have their own layout, don't show the regular sidebar for them
-  if (active === 'admin' || active === 'manager') {
+  // Admin, manager and finance dashboards have their own layout, don't show the regular sidebar for them
+  if (active === 'admin' || active === 'manager' || active === 'finance') {
     return <PageRouter active={active} setActive={setActive} user={user} onLogout={handleLogout} />
   }
 
@@ -184,9 +192,11 @@ function PageRouter({ active, setActive, user, onLogout }: any) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
     case 'admin': return <AdminDashboard onLogout={onLogout} />
     case 'manager': return <ManagerDashboard onLogout={onLogout} />
+    case 'finance': return <FinanceDashboard user={user} onLogout={onLogout} />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />
+    case 'Pay Requests': return <PayRequestPage />
     case 'settings': return <SettingsPage user={user} />
     case 'help': return <HelpPage />
     case 'NonAlcoholic': return <NonAlcoholic />

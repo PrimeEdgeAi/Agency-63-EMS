@@ -1,4 +1,4 @@
-import type { EventItem, RecceItem, PayRequest } from '../types'
+import type { EventItem, RecceItem, PayRequest, RequisitionItem } from '../types'
 import { loadGoogleSheetsConfig } from '../admin/components/GoogleSheetsConnection'
 
 type DataListener = () => void
@@ -7,7 +7,7 @@ const dataListeners = new Set<DataListener>()
 type WorkflowKind = 'event' | 'recce' | 'requisition' | 'pay_request'
 
 const N8N_WORKFLOW_URLS: Record<WorkflowKind, string> = {
-  event: (import.meta.env.VITE_N8N_EVENT_WORKFLOW_URL as string) || '',
+  event: (import.meta.env.VITE_N8N_EVENT_WORKFLOW_URL as string) || 'https://kenmongare.app.n8n.cloud/webhook/event-registration',
   recce: (import.meta.env.VITE_N8N_RECCE_WORKFLOW_URL as string) || '',
   requisition: (import.meta.env.VITE_N8N_REQUISITION_WORKFLOW_URL as string) || '',
   pay_request: (import.meta.env.VITE_N8N_PAY_REQUEST_WORKFLOW_URL as string) || '',
@@ -320,6 +320,8 @@ export let PAY_REQUESTS: PayRequest[] = [
     status: 'approved',
     date: '2025-02-20',
     category: 'Catering',
+    paymentMethod: 'cheque',
+    transactionId: 'CHQ-2041',
   },
   {
     id: 'PR-003',
@@ -338,6 +340,7 @@ export let PAY_REQUESTS: PayRequest[] = [
     status: 'review',
     date: '2025-03-10',
     category: 'Design',
+    paymentMethod: 'cash',
   },
   {
     id: 'PR-005',
@@ -347,6 +350,7 @@ export let PAY_REQUESTS: PayRequest[] = [
     status: 'approved',
     date: '2025-02-25',
     category: 'Print',
+    paymentMethod: 'cash',
   },
   {
     id: 'PR-006',
@@ -356,6 +360,36 @@ export let PAY_REQUESTS: PayRequest[] = [
     status: 'pending',
     date: '2025-04-10',
     category: 'Venue',
+  },
+]
+
+export let REQUISITIONS: RequisitionItem[] = [
+  {
+    id: 'RQ-001',
+    company: 'EventPortal Ltd',
+    jobId: 'JOB-1001',
+    client: 'Nairobi Tech Summit 2025',
+    eventDescription: 'Stage design and event signage',
+    requestorName: 'Sarah M.',
+    requestorEmail: 'sarah.m@example.com',
+    dateRequired: '2025-03-10',
+    lineItems: [
+      {
+        description: 'Printed banners',
+        supplier: 'Print & Go',
+        category: 'Marketing & Print',
+        qty: 2,
+        days: 1,
+        unitCost: 22000,
+        total: 44000,
+      },
+    ],
+    totalAmount: 44000,
+    justification: 'Venue branding for the summit entrance.',
+    notes: 'Need delivered two days before event.',
+    urgency: 'Medium',
+    status: 'pending',
+    submittedAt: '2025-02-22T09:00:00.000Z',
   },
 ]
 
@@ -369,6 +403,59 @@ export function getRecceData() {
 
 export function getPayRequestsData() {
   return PAY_REQUESTS
+}
+
+export function getRequisitionsData() {
+  return REQUISITIONS
+}
+
+export function addRequisition(request: Omit<RequisitionItem, 'id' | 'status' | 'submittedAt'>) {
+  const id = `RQ-${String(REQUISITIONS.length + 1).padStart(3, '0')}`
+  const newRequest: RequisitionItem = {
+    ...request,
+    id,
+    status: 'pending',
+    submittedAt: new Date().toISOString(),
+  }
+  REQUISITIONS = [newRequest, ...REQUISITIONS]
+  notifyData()
+  return newRequest
+}
+
+export function updateRequisition(id: string, updates: Partial<Omit<RequisitionItem, 'id'>>) {
+  REQUISITIONS = REQUISITIONS.map((requisition) =>
+    requisition.id === id ? { ...requisition, ...updates } : requisition
+  )
+  notifyData()
+  return REQUISITIONS.find((requisition) => requisition.id === id)
+}
+
+export function approveRequisition(id: string, paymentMethod: 'cash' | 'cheque', transactionId?: string) {
+  return updateRequisition(id, {
+    status: 'approved',
+    paymentMethod,
+    transactionId,
+  })
+}
+
+export function rejectRequisition(id: string) {
+  return updateRequisition(id, { status: 'rejected' })
+}
+
+export function approvePayRequest(id: string, paymentMethod: 'cash' | 'cheque', transactionId?: string) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, status: 'approved', paymentMethod, transactionId } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
+}
+
+export function rejectPayRequest(id: string) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, status: 'rejected' } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
 }
 
 export async function syncSheetDataToLocalStore() {

@@ -19,11 +19,10 @@ export function PayRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    const unsubscribe = subscribeData(() => {
+    return subscribeData(() => {
       setPayRequests(getPayRequestsData())
       setEvents(getEventsData())
     })
-    return unsubscribe
   }, [])
 
   const resetForm = () => {

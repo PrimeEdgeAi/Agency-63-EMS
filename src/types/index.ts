@@ -27,6 +27,7 @@ export type PageId =
   | 'events'
   | 'recce'
   | 'payrequest'
+  | 'finance'
   | 'settings'
   | 'help'
 
@@ -79,4 +80,26 @@ export interface PayRequest {
   status: PayStatus
   date: string
   category: string
+  paymentMethod?: 'cash' | 'cheque'
+  transactionId?: string
+}
+
+export interface RequisitionItem {
+  id: string
+  company: string
+  jobId: string
+  client: string
+  eventDescription: string
+  requestorName: string
+  requestorEmail: string
+  dateRequired: string
+  lineItems: Array<{ description: string; supplier: string; category: string; qty: number; days: number; unitCost: number; total: number }>
+  totalAmount: number
+  justification: string
+  notes: string
+  urgency: string
+  status: 'pending' | 'approved' | 'rejected'
+  paymentMethod?: 'cash' | 'cheque'
+  transactionId?: string
+  submittedAt: string
 }
