@@ -1,25 +1,82 @@
-import { useState } from 'react'
-import { PAY_REQUESTS, EVENTS_DATA } from '../../data'
+import { useEffect, useState } from 'react'
+import { getEventsData, getPayRequestsData, subscribeData, addPayRequest, submitPayRequestWorkflow } from '../../data'
 import { StatusBadge, Card, PageHeader, FilterPills, Button, Modal, Field, Input, Textarea, Select } from '../ui'
-
 
 const FILTER_OPTIONS = ['all', 'pending', 'approved', 'review', 'rejected']
 
 export function PayRequestPage() {
-  const [filter,   setFilter]   = useState('all')
+  const [filter, setFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
+  const [payRequests, setPayRequests] = useState(() => getPayRequestsData())
+  const [events, setEvents] = useState(() => getEventsData())
+  const [selectedEvent, setSelectedEvent] = useState('')
+  const [vendor, setVendor] = useState('')
+  const [category, setCategory] = useState('')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState('')
+  const [description, setDescription] = useState('')
+  const [message, setMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filtered =
-    filter === 'all' ? PAY_REQUESTS : PAY_REQUESTS.filter((p) => p.status === filter)
+  useEffect(() => {
+    return subscribeData(() => {
+      setPayRequests(getPayRequestsData())
+      setEvents(getEventsData())
+    })
+  }, [])
 
-  const totalPending  = PAY_REQUESTS.filter((p) => p.status === 'pending').reduce((a, b) => a + b.amount, 0)
-  const totalApproved = PAY_REQUESTS.filter((p) => p.status === 'approved').reduce((a, b) => a + b.amount, 0)
+  const resetForm = () => {
+    setSelectedEvent('')
+    setVendor('')
+    setCategory('')
+    setAmount('')
+    setDate('')
+    setDescription('')
+  }
+
+  const handleSubmit = async () => {
+    setMessage('')
+    if (!selectedEvent || !vendor.trim() || !category || !amount || !date) {
+      setMessage('Please complete all required fields.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const newRequest = addPayRequest({
+        event: selectedEvent,
+        vendor: vendor.trim(),
+        amount: Number(amount),
+        status: 'pending',
+        date,
+        category,
+      })
+
+      const sheetResult = await submitPayRequestWorkflow(newRequest)
+      setMessage(
+        sheetResult.ok
+          ? 'Pay request saved and Google Sheets sync attempted.'
+          : `Pay request saved. Google Sheets sync failed: ${sheetResult.error}`
+      )
+      resetForm()
+      setShowForm(false)
+    } catch (error) {
+      setMessage('Unable to save pay request. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const filtered = filter === 'all' ? payRequests : payRequests.filter((p) => p.status === filter)
+
+  const totalPending = payRequests.filter((p) => p.status === 'pending').reduce((a, b) => a + b.amount, 0)
+  const totalApproved = payRequests.filter((p) => p.status === 'approved').reduce((a, b) => a + b.amount, 0)
 
   const summary = [
-    { label: 'Total Requests',   value: PAY_REQUESTS.length,                                      bg: '#f7f7f7', color: '#111' },
-    { label: 'Pending Approval', value: PAY_REQUESTS.filter((p) => p.status === 'pending').length, bg: '#fff7ed', color: '#c2410c' },
-    { label: 'Pending Amount',   value: `KES ${(totalPending  / 1000).toFixed(0)}K`,              bg: '#fff7ed', color: '#c2410c' },
-    { label: 'Approved Amount',  value: `KES ${(totalApproved / 1000).toFixed(0)}K`,              bg: '#f0fdf4', color: '#15803d' },
+    { label: 'Total Requests', value: payRequests.length, bg: '#f7f7f7', color: '#111' },
+    { label: 'Pending Approval', value: payRequests.filter((p) => p.status === 'pending').length, bg: '#fff7ed', color: '#c2410c' },
+    { label: 'Pending Amount', value: `KES ${(totalPending / 1000).toFixed(0)}K`, bg: '#fff7ed', color: '#c2410c' },
+    { label: 'Approved Amount', value: `KES ${(totalApproved / 1000).toFixed(0)}K`, bg: '#f0fdf4', color: '#15803d' },
   ]
 
   return (
@@ -27,6 +84,12 @@ export function PayRequestPage() {
       <PageHeader section="Finance" title="Pay Requests">
         <Button onClick={() => setShowForm(true)}>+ New Request</Button>
       </PageHeader>
+
+      {message && (
+        <div style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+          {message}
+        </div>
+      )}
 
       {/* Summary KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 32 }}>
@@ -142,17 +205,23 @@ export function PayRequestPage() {
       {showForm && (
         <Modal title="New Pay Request" onClose={() => setShowForm(false)} width={540}>
           <Field label="Select Event">
-            <Select>
+            <Select value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
               <option value="">Choose event…</option>
-              {EVENTS_DATA.map((e) => <option key={e.id}>{e.title}</option>)}
+              {events.map((e) => (
+                <option key={e.id} value={e.title}>{e.title}</option>
+              ))}
             </Select>
           </Field>
           <Field label="Vendor Name">
-            <Input placeholder="e.g. AV Solutions Ltd" />
+            <Input
+              value={vendor}
+              placeholder="e.g. AV Solutions Ltd"
+              onChange={(e) => setVendor(e.target.value)}
+            />
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Category">
-              <Select>
+              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="">Category…</option>
                 {['Equipment', 'Catering', 'Venue', 'Design', 'Print', 'Transport', 'Security', 'Other'].map((c) => (
                   <option key={c}>{c}</option>
@@ -160,18 +229,30 @@ export function PayRequestPage() {
               </Select>
             </Field>
             <Field label="Amount (KES)">
-              <Input type="number" placeholder="0" />
+              <Input
+                type="number"
+                value={amount}
+                placeholder="0"
+                onChange={(e) => setAmount(e.target.value)}
+              />
             </Field>
           </div>
           <Field label="Payment Date">
-            <Input type="date" />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label="Description">
-            <Textarea rows={3} placeholder="Purpose of this payment…" />
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Purpose of this payment…"
+            />
           </Field>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
             <Button variant="secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button variant="primary" style={{ flex: 2 }} onClick={() => setShowForm(false)}>Submit Request</Button>
+            <Button variant="primary" style={{ flex: 2 }} onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting…' : 'Submit Request'}
+            </Button>
           </div>
         </Modal>
       )}

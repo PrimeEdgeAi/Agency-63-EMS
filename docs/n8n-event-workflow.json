@@ -1,0 +1,357 @@
+{
+  "name": "Event Lifecycle Approval Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "event-lifecycle",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook: New Event Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "proposal_title",
+              "value": "={{$json.body.proposal.title}}"
+            },
+            {
+              "name": "proposal_budget",
+              "value": "={{$json.body.proposal.budget}}"
+            },
+            {
+              "name": "submitted_by",
+              "value": "={{$json.body.proposal.submitted_by}}"
+            },
+            {
+              "name": "manager_email",
+              "value": "={{$json.body.proposal.manager_email || 'manager@example.com'}}"
+            },
+            {
+              "name": "job_id",
+              "value": "={{$json.body.event.job_id || 'JOB-' + $now.toFormat('yyyyMMddHHmmss')}}"
+            },
+            {
+              "name": "event_payload",
+              "value": "={{$json.body.event}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-1",
+      "name": "Set Initial Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SPREADSHEET_ID/values/Proposals!A:append?valueInputOption=RAW",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.GOOGLE_SHEETS_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"values\": [[\"{{$json.proposal_title}}\", {{$json.proposal_budget}}, \"{{$json.submitted_by}}\", \"{{$now.toISO()}}\", \"pending\"]]\n}"
+      },
+      "id": "http-1",
+      "name": "Append Proposal to Google Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@yourcompany.com",
+        "toEmail": "={{$json.manager_email}}",
+        "subject": "New event proposal needs approval",
+        "emailType": "text",
+        "message": "A new proposal requires your approval.\n\nTitle: {{$json.proposal_title}}\nBudget: {{$json.proposal_budget}}\nSubmitted by: {{$json.submitted_by}}\n\nApprove via: https://your-approval-endpoint.example/approve/{{$json.job_id}}"
+      },
+      "id": "email-1",
+      "name": "Notify Manager for Approval",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1010,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "path": "approval-status",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wait-1",
+      "name": "Wait for Manager Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.approved}}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-1",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1510,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"event_submission\",\n  \"payload\": {\n    \"job_id\": \"{{$json.job_id}}\",\n    \"description\": \"{{$json.proposal_title}}\",\n    \"client\": \"{{$json.body.event.client}}\",\n    \"status\": \"planning\",\n    \"clientLead\": \"{{$json.body.event.clientLead}}\",\n    \"projectLead\": \"{{$json.body.event.projectLead}}\",\n    \"email\": \"{{$json.submitted_by}}\",\n    \"where\": \"{{$json.body.event.where}}\",\n    \"startDate\": \"{{$json.body.event.startDate}}\",\n    \"endDate\": \"{{$json.body.event.endDate}}\"\n  }\n}"
+      },
+      "id": "http-2",
+      "name": "Create Event Submission",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"recce\",\n  \"payload\": {\n    \"job_id\": \"{{$json.job_id}}\",\n    \"email\": \"{{$json.submitted_by}}\",\n    \"client\": \"{{$json.body.event.client}}\",\n    \"description\": \"{{$json.proposal_title}}\",\n    \"reccee_date\": \"{{$json.body.event.startDate}}\",\n    \"location\": \"{{$json.body.event.where}}\",\n    \"company\": \"{{$json.body.event.company || 'Event Portal'}}\"\n  }\n}"
+      },
+      "id": "http-3",
+      "name": "Create Recce Submission",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2030,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"requisition\",\n  \"payload\": {\n    \"job_id\": \"{{$json.job_id}}\",\n    \"client\": \"{{$json.body.event.client}}\",\n    \"company\": \"{{$json.body.event.company || 'Event Portal'}}\",\n    \"event_description\": \"{{$json.proposal_title}}\",\n    \"requestor_name\": \"{{$json.body.event.requestor_name || $json.submitted_by}}\",\n    \"requestor_email\": \"{{$json.submitted_by}}\",\n    \"date_required\": \"{{$json.body.event.startDate}}\",\n    \"total_amount\": {{$json.proposal_budget}},\n    \"urgency\": \"{{$json.body.event.urgency || 'Normal'}}\"\n  }\n}"
+      },
+      "id": "http-4",
+      "name": "Create Requisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"pay_request\",\n  \"request\": {\n    \"id\": \"PR-{{$json.job_id}}\",\n    \"event\": \"{{$json.job_id}}\",\n    \"vendor\": \"{{$json.body.event.vendor || 'TBD'}}\",\n    \"amount\": {{$json.proposal_budget}},\n    \"status\": \"pending\",\n    \"date\": \"{{$json.body.event.startDate}}\",\n    \"category\": \"Operations\"\n  }\n}"
+      },
+      "id": "http-5",
+      "name": "Create Pay Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2530,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"completed\",\n  \"job_id\": \"{{$json.job_id}}\",\n  \"message\": \"Event lifecycle completed successfully.\"\n}"
+      },
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2780,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: New Event Request": {
+      "main": [
+        [
+          {
+            "node": "Set Initial Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Initial Data": {
+      "main": [
+        [
+          {
+            "node": "Append Proposal to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Proposal to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Notify Manager for Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manager for Approval": {
+      "main": [
+        [
+          {
+            "node": "Wait for Manager Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Manager Approval": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Create Event Submission",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event Submission": {
+      "main": [
+        [
+          {
+            "node": "Create Recce Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Recce Submission": {
+      "main": [
+        [
+          {
+            "node": "Create Requisition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Requisition": {
+      "main": [
+        [
+          {
+            "node": "Create Pay Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Pay Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "event-lifecycle-approval-flow"
+}

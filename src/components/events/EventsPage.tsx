@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { EventItem } from '../../types'
-import { EVENTS_DATA } from '../../data'
+import { getEventsData, subscribeData } from '../../data'
 import { StatusBadge, Card, PageHeader, FilterPills, Button } from '../ui'
 import { EventDetail } from './EventDetail'
 import { NewEventModal } from './NewEventModal'
@@ -10,13 +10,18 @@ type ViewMode = 'grid' | 'list'
 const FILTER_OPTIONS = ['all', 'upcoming', 'planning', 'completed']
 
 export function EventsPage() {
-  const [view,      setView]      = useState<ViewMode>('grid')
-  const [filter,    setFilter]    = useState('all')
-  const [selected,  setSelected]  = useState<EventItem | null>(null)
-  const [showForm,  setShowForm]  = useState(true)
+  const [view, setView] = useState<ViewMode>('grid')
+  const [filter, setFilter] = useState('all')
+  const [selected, setSelected] = useState<EventItem | null>(null)
+  const [showForm, setShowForm] = useState(true)
+  const [events, setEvents] = useState(() => getEventsData())
 
-  const filtered =
-    filter === 'all' ? EVENTS_DATA : EVENTS_DATA.filter((e) => e.status === filter)
+  useEffect(() => {
+    const unsubscribe = subscribeData(() => setEvents(getEventsData()))
+    return unsubscribe
+  }, [])
+
+  const filtered = filter === 'all' ? events : events.filter((e) => e.status === filter)
 
   if (selected) {
     return <EventDetail event={selected} onBack={() => setSelected(null)} />

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
+import { submitRecceWorkflow } from '../../../data'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
-const RECCE_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/reccee-assessment'
 
 // ─── CSV helpers ─────────────────────────────────────────────────────────────
 function parseCSV(text: string) {
@@ -167,11 +167,13 @@ export function RecceForm({ companyName, onBack }: Props) {
       permits, challenges, company: companyName, submitted_at: new Date().toISOString()
     }
     try {
-      await fetch(RECCE_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await submitRecceWorkflow(payload)
+      if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setRef('REC-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
-    } catch { setError('Submission failed. Please try again.') }
-    finally { setSubmitting(false) }
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
+    } finally { setSubmitting(false) }
   }
 
   const field = (label: string, required = false, children: React.ReactNode) => (

@@ -1,4 +1,162 @@
-import type { EventItem, RecceItem, PayRequest } from '../types'
+import type { EventItem, RecceItem, PayRequest, RequisitionItem } from '../types'
+import { loadGoogleSheetsConfig } from '../admin/components/GoogleSheetsConnection'
+
+type DataListener = () => void
+const dataListeners = new Set<DataListener>()
+
+type WorkflowKind = 'event' | 'recce' | 'requisition' | 'pay_request'
+
+const N8N_WORKFLOW_URLS: Record<WorkflowKind, string> = {
+  event: (import.meta.env.VITE_N8N_EVENT_WORKFLOW_URL as string) || 'https://kenmongare.app.n8n.cloud/webhook/event-registration',
+  recce: (import.meta.env.VITE_N8N_RECCE_WORKFLOW_URL as string) || '',
+  requisition: (import.meta.env.VITE_N8N_REQUISITION_WORKFLOW_URL as string) || '',
+  pay_request: (import.meta.env.VITE_N8N_PAY_REQUEST_WORKFLOW_URL as string) || '',
+}
+
+function getWorkflowKind(type?: string): WorkflowKind | undefined {
+  switch (type) {
+    case 'event_submission':
+    case 'event':
+      return 'event'
+    case 'recce':
+      return 'recce'
+    case 'requisition':
+      return 'requisition'
+    case 'pay_request':
+      return 'pay_request'
+    default:
+      return undefined
+  }
+}
+
+interface SheetEvent {
+  Job_ID: string
+  Description: string
+  Client: string
+  Status: string
+  Client_Lead: string
+  Project_Lead: string
+  Email: string
+  Where: string
+  Start_Date: string
+  End_Date: string
+  Recce_Done?: string
+}
+
+// Reccee sheet rows can have many columns; accept a loose shape
+type SheetRequisition = Record<string, any>
+
+interface SheetDashboardData {
+  events: SheetEvent[]
+  claims?: unknown[]
+  requisitions: SheetRequisition[]
+  roles?: unknown[]
+}
+
+function normalizeSheetEventStatus(status: string): EventItem['status'] {
+  if (/completed|done|finished/i.test(status)) return 'completed'
+  if (/planning|update|launch|creation/i.test(status)) return 'planning'
+  return 'upcoming'
+}
+
+function mapSheetEvents(events: SheetEvent[]): EventItem[] {
+  return events.map((event, index) => ({
+    id: index + 1,
+    title: event.Description || event.Job_ID || `Event ${index + 1}`,
+    date: event.Start_Date || event.End_Date || '',
+    location: event.Where || 'Unknown location',
+    status: normalizeSheetEventStatus(event.Status || ''),
+    attendees: 0,
+    budget: 0,
+    category: event.Status || 'Event',
+    story: event.Description || 'Imported from Google Sheets',
+    image: event.Status && event.Status.toLowerCase().includes('update') ? '🔁' : '📅',
+    job_id: event.Job_ID,
+    recceDone: event.Recce_Done || 'No',
+  }))
+}
+
+function mapSheetRequisitions(requisitions: SheetRequisition[]): RecceItem[] {
+  return requisitions.map((req, index) => ({
+    id: `RR-SHEET-${String(index + 1).padStart(3, '0')}`,
+    event: req['Job_ID'] || req['Description'] || `Recce ${index + 1}`,
+    venue: req['Location'] || req['Company'] || 'Unknown location',
+    requestedBy: req['Email'] || req['Requested By'] || 'Sheet import',
+    date: req['Reccee Date'] || '',
+    status: 'pending',
+    notes: req['Notes'] || (req['Amenities'] ? `Amenities: ${req['Amenities']}` : ''),
+    job_id: req['Job_ID'] || undefined,
+  }))
+}
+
+function notifyData() {
+  dataListeners.forEach((listener) => listener())
+}
+
+export function subscribeData(listener: DataListener) {
+  dataListeners.add(listener)
+  return () => {
+    dataListeners.delete(listener)
+  }
+}
+
+export async function pushDataToGoogleSheets(payload: unknown) {
+  const payloadObject = payload as { type?: string; payload?: unknown; request?: unknown } | undefined
+  const workflowKind = getWorkflowKind(payloadObject?.type)
+  const workflowUrl = workflowKind ? N8N_WORKFLOW_URLS[workflowKind] : ''
+
+  if (workflowUrl) {
+    try {
+      const response = await fetch(workflowUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: payloadObject?.payload ?? payloadObject?.request ?? payloadObject ?? payload }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        return { ok: false, error: errorText || `Workflow request failed with status ${response.status}` }
+      }
+
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'Workflow request failed' }
+    }
+  }
+
+  const config = loadGoogleSheetsConfig()
+  if (!config.webAppUrl) {
+    return { ok: false, error: 'Google Sheets Web App URL is not configured.' }
+  }
+
+  try {
+    await fetch(config.webAppUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Network error' }
+  }
+}
+
+export async function submitEventWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'event_submission', payload })
+}
+
+export async function submitRecceWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'recce', payload })
+}
+
+export async function submitRequisitionWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'requisition', payload })
+}
+
+export async function submitPayRequestWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'pay_request', payload })
+}
 
 export const APPROVED_EMAILS: string[] = [
   'admin@company.com',
@@ -6,7 +164,7 @@ export const APPROVED_EMAILS: string[] = [
   'demo@eventportal.com',
 ]
 
-export const EVENTS_DATA: EventItem[] = [
+export let EVENTS_DATA: EventItem[] = [
   {
     id: 1,
     title: 'Nairobi Tech Summit 2025',
@@ -105,7 +263,7 @@ export const EVENTS_DATA: EventItem[] = [
   },
 ]
 
-export const RECCE_DATA: RecceItem[] = [
+export let RECCE_DATA: RecceItem[] = [
   {
     id: 'RR-001',
     event: 'Nairobi Tech Summit 2025',
@@ -144,7 +302,7 @@ export const RECCE_DATA: RecceItem[] = [
   },
 ]
 
-export const PAY_REQUESTS: PayRequest[] = [
+export let PAY_REQUESTS: PayRequest[] = [
   {
     id: 'PR-001',
     event: 'Nairobi Tech Summit 2025',
@@ -162,6 +320,8 @@ export const PAY_REQUESTS: PayRequest[] = [
     status: 'approved',
     date: '2025-02-20',
     category: 'Catering',
+    paymentMethod: 'cheque',
+    transactionId: 'CHQ-2041',
   },
   {
     id: 'PR-003',
@@ -180,6 +340,7 @@ export const PAY_REQUESTS: PayRequest[] = [
     status: 'review',
     date: '2025-03-10',
     category: 'Design',
+    paymentMethod: 'cash',
   },
   {
     id: 'PR-005',
@@ -189,6 +350,7 @@ export const PAY_REQUESTS: PayRequest[] = [
     status: 'approved',
     date: '2025-02-25',
     category: 'Print',
+    paymentMethod: 'cash',
   },
   {
     id: 'PR-006',
@@ -200,3 +362,196 @@ export const PAY_REQUESTS: PayRequest[] = [
     category: 'Venue',
   },
 ]
+
+export let REQUISITIONS: RequisitionItem[] = [
+  {
+    id: 'RQ-001',
+    company: 'EventPortal Ltd',
+    jobId: 'JOB-1001',
+    client: 'Nairobi Tech Summit 2025',
+    eventDescription: 'Stage design and event signage',
+    requestorName: 'Sarah M.',
+    requestorEmail: 'sarah.m@example.com',
+    dateRequired: '2025-03-10',
+    lineItems: [
+      {
+        description: 'Printed banners',
+        supplier: 'Print & Go',
+        category: 'Marketing & Print',
+        qty: 2,
+        days: 1,
+        unitCost: 22000,
+        total: 44000,
+      },
+    ],
+    totalAmount: 44000,
+    justification: 'Venue branding for the summit entrance.',
+    notes: 'Need delivered two days before event.',
+    urgency: 'Medium',
+    status: 'pending',
+    submittedAt: '2025-02-22T09:00:00.000Z',
+  },
+]
+
+export function getEventsData() {
+  return EVENTS_DATA
+}
+
+export function getRecceData() {
+  return RECCE_DATA
+}
+
+export function getPayRequestsData() {
+  return PAY_REQUESTS
+}
+
+export function getRequisitionsData() {
+  return REQUISITIONS
+}
+
+export function addRequisition(request: Omit<RequisitionItem, 'id' | 'status' | 'submittedAt'>) {
+  const id = `RQ-${String(REQUISITIONS.length + 1).padStart(3, '0')}`
+  const newRequest: RequisitionItem = {
+    ...request,
+    id,
+    status: 'pending',
+    submittedAt: new Date().toISOString(),
+  }
+  REQUISITIONS = [newRequest, ...REQUISITIONS]
+  notifyData()
+  return newRequest
+}
+
+export function updateRequisition(id: string, updates: Partial<Omit<RequisitionItem, 'id'>>) {
+  REQUISITIONS = REQUISITIONS.map((requisition) =>
+    requisition.id === id ? { ...requisition, ...updates } : requisition
+  )
+  notifyData()
+  return REQUISITIONS.find((requisition) => requisition.id === id)
+}
+
+export function approveRequisition(id: string, paymentMethod: 'cash' | 'cheque', transactionId?: string) {
+  return updateRequisition(id, {
+    status: 'approved',
+    paymentMethod,
+    transactionId,
+  })
+}
+
+export function rejectRequisition(id: string) {
+  return updateRequisition(id, { status: 'rejected' })
+}
+
+export function approvePayRequest(id: string, paymentMethod: 'cash' | 'cheque', transactionId?: string) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, status: 'approved', paymentMethod, transactionId } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
+}
+
+export function rejectPayRequest(id: string) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, status: 'rejected' } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
+}
+
+export async function syncSheetDataToLocalStore() {
+  const config = loadGoogleSheetsConfig()
+  if (!config.webAppUrl) {
+    return { ok: false, error: 'Google Sheets Web App URL is not configured.' }
+  }
+
+  try {
+    const response = await fetch(config.webAppUrl)
+    if (!response.ok) {
+      return { ok: false, error: `Google Sheets fetch failed (${response.status})` }
+    }
+
+    const data = (await response.json()) as SheetDashboardData
+    if (!data?.events || !data?.requisitions) {
+      return { ok: false, error: 'Google Sheets response did not include valid events and requisitions.' }
+    }
+
+    EVENTS_DATA = mapSheetEvents(data.events)
+    RECCE_DATA = mapSheetRequisitions(data.requisitions)
+    notifyData()
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Unable to fetch Google Sheets data.' }
+  }
+}
+
+export async function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
+  const id = `RR-${String(RECCE_DATA.length + 1).padStart(3, '0')}`
+  const newRecce: RecceItem = {
+    ...requisition,
+    id,
+    status: 'pending',
+  }
+  RECCE_DATA = [...RECCE_DATA, newRecce]
+  notifyData()
+
+  const result = await pushDataToGoogleSheets({
+    type: 'recce',
+    payload: {
+      job_id: (newRecce as any).job_id || newRecce.event,
+      client: newRecce.event,
+      reccee_date: newRecce.date,
+      location: newRecce.venue,
+      email: '',
+      description: newRecce.notes || '',
+      submitted_at: new Date().toISOString(),
+    },
+  })
+
+  return { ok: result.ok, recce: newRecce, error: result.ok ? undefined : result.error }
+}
+
+export function completeRecce(id: string) {
+  const recce = RECCE_DATA.find((item) => item.id === id)
+  if (!recce) return undefined
+
+  RECCE_DATA = RECCE_DATA.filter((item) => item.id !== id)
+  EVENTS_DATA = EVENTS_DATA.filter((event) => event.title !== recce.event)
+  notifyData()
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('BtlRecceCompleted', { detail: { id: recce.id, event: recce.event } }))
+  }
+
+  return recce
+}
+
+export function approveRecce(id: string) {
+  const recce = RECCE_DATA.find((item) => item.id === id)
+  if (!recce) return undefined
+
+  RECCE_DATA = RECCE_DATA.map((item) =>
+    item.id === id ? { ...item, status: 'approved' } : item
+  )
+  notifyData()
+  return RECCE_DATA.find((item) => item.id === id)
+}
+
+export function addPayRequest(request: Omit<PayRequest, 'id'>) {
+  const id = `PR-${String(PAY_REQUESTS.length + 1).padStart(3, '0')}`
+  const newRequest: PayRequest = { id, ...request }
+  PAY_REQUESTS = [...PAY_REQUESTS, newRequest]
+  notifyData()
+  return newRequest
+}
+
+export function updatePayRequest(id: string, updates: Partial<Omit<PayRequest, 'id'>>) {
+  PAY_REQUESTS = PAY_REQUESTS.map((request) =>
+    request.id === id ? { ...request, ...updates } : request
+  )
+  notifyData()
+  return PAY_REQUESTS.find((request) => request.id === id)
+}
+
+export function findPayRequestByEvent(event: string) {
+  return PAY_REQUESTS.find((request) => request.event === event)
+}
