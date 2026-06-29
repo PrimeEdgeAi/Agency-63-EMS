@@ -49,6 +49,7 @@ export interface EventItem {
   projectAssistant?: string
   projectAssistantEmail?: string
   projectStatus?: string
+  recceDone?: string
 }
 
 // ─── Recce ───────────────────────────────────────────────────────────────────

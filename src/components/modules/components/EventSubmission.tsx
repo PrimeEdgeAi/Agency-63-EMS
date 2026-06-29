@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
-import { pushDataToGoogleSheets } from '../../../data'
+import { submitEventWorkflow } from '../../../data'
 
 const STATUS_OPTIONS = [
   'Project Creation',
@@ -67,22 +67,19 @@ export function EventSubmission({ companyName, onBack }: Props) {
     setError('')
     setSubmitting(true)
     try {
-      const result = await pushDataToGoogleSheets({
-        type: 'event_submission',
-        payload: {
-          company: companyName,
-          client,
-          status,
-          description,
-          clientLead,
-          projectLead,
-          email,
-          assistants,
-          location,
-          startDate,
-          endDate,
-          submittedAt: new Date().toISOString(),
-        },
+      const result = await submitEventWorkflow({
+        company: companyName,
+        client,
+        status,
+        description,
+        clientLead,
+        projectLead,
+        email,
+        assistants,
+        location,
+        startDate,
+        endDate,
+        submittedAt: new Date().toISOString(),
       })
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setSubmitted(true)

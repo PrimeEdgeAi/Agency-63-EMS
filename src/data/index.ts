@@ -4,6 +4,31 @@ import { loadGoogleSheetsConfig } from '../admin/components/GoogleSheetsConnecti
 type DataListener = () => void
 const dataListeners = new Set<DataListener>()
 
+type WorkflowKind = 'event' | 'recce' | 'requisition' | 'pay_request'
+
+const N8N_WORKFLOW_URLS: Record<WorkflowKind, string> = {
+  event: (import.meta.env.VITE_N8N_EVENT_WORKFLOW_URL as string) || '',
+  recce: (import.meta.env.VITE_N8N_RECCE_WORKFLOW_URL as string) || '',
+  requisition: (import.meta.env.VITE_N8N_REQUISITION_WORKFLOW_URL as string) || '',
+  pay_request: (import.meta.env.VITE_N8N_PAY_REQUEST_WORKFLOW_URL as string) || '',
+}
+
+function getWorkflowKind(type?: string): WorkflowKind | undefined {
+  switch (type) {
+    case 'event_submission':
+    case 'event':
+      return 'event'
+    case 'recce':
+      return 'recce'
+    case 'requisition':
+      return 'requisition'
+    case 'pay_request':
+      return 'pay_request'
+    default:
+      return undefined
+  }
+}
+
 interface SheetEvent {
   Job_ID: string
   Description: string
@@ -15,18 +40,11 @@ interface SheetEvent {
   Where: string
   Start_Date: string
   End_Date: string
+  Recce_Done?: string
 }
 
-interface SheetRequisition {
-  Job_ID: string
-  Supplier: string
-  Category: string
-  Description: string
-  Qty: number
-  Unit_Cost: number
-  Days: number
-  Total: number
-}
+// Reccee sheet rows can have many columns; accept a loose shape
+type SheetRequisition = Record<string, any>
 
 interface SheetDashboardData {
   events: SheetEvent[]
@@ -53,18 +71,21 @@ function mapSheetEvents(events: SheetEvent[]): EventItem[] {
     category: event.Status || 'Event',
     story: event.Description || 'Imported from Google Sheets',
     image: event.Status && event.Status.toLowerCase().includes('update') ? '🔁' : '📅',
+    job_id: event.Job_ID,
+    recceDone: event.Recce_Done || 'No',
   }))
 }
 
 function mapSheetRequisitions(requisitions: SheetRequisition[]): RecceItem[] {
   return requisitions.map((req, index) => ({
     id: `RR-SHEET-${String(index + 1).padStart(3, '0')}`,
-    event: req.Job_ID || req.Description || `Requisition ${index + 1}`,
-    venue: req.Supplier || req.Category || 'Unknown vendor',
-    requestedBy: req.Description || 'Sheet import',
-    date: '',
+    event: req['Job_ID'] || req['Description'] || `Recce ${index + 1}`,
+    venue: req['Location'] || req['Company'] || 'Unknown location',
+    requestedBy: req['Email'] || req['Requested By'] || 'Sheet import',
+    date: req['Reccee Date'] || '',
     status: 'pending',
-    notes: `Total: KES ${Number(req.Total || 0).toLocaleString()}`,
+    notes: req['Notes'] || (req['Amenities'] ? `Amenities: ${req['Amenities']}` : ''),
+    job_id: req['Job_ID'] || undefined,
   }))
 }
 
@@ -80,6 +101,29 @@ export function subscribeData(listener: DataListener) {
 }
 
 export async function pushDataToGoogleSheets(payload: unknown) {
+  const payloadObject = payload as { type?: string; payload?: unknown; request?: unknown } | undefined
+  const workflowKind = getWorkflowKind(payloadObject?.type)
+  const workflowUrl = workflowKind ? N8N_WORKFLOW_URLS[workflowKind] : ''
+
+  if (workflowUrl) {
+    try {
+      const response = await fetch(workflowUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: payloadObject?.payload ?? payloadObject?.request ?? payloadObject ?? payload }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        return { ok: false, error: errorText || `Workflow request failed with status ${response.status}` }
+      }
+
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'Workflow request failed' }
+    }
+  }
+
   const config = loadGoogleSheetsConfig()
   if (!config.webAppUrl) {
     return { ok: false, error: 'Google Sheets Web App URL is not configured.' }
@@ -96,6 +140,22 @@ export async function pushDataToGoogleSheets(payload: unknown) {
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Network error' }
   }
+}
+
+export async function submitEventWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'event_submission', payload })
+}
+
+export async function submitRecceWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'recce', payload })
+}
+
+export async function submitRequisitionWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'requisition', payload })
+}
+
+export async function submitPayRequestWorkflow(payload: unknown) {
+  return pushDataToGoogleSheets({ type: 'pay_request', payload })
 }
 
 export const APPROVED_EMAILS: string[] = [
@@ -337,7 +397,7 @@ export async function syncSheetDataToLocalStore() {
   }
 }
 
-export function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
+export async function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
   const id = `RR-${String(RECCE_DATA.length + 1).padStart(3, '0')}`
   const newRecce: RecceItem = {
     ...requisition,
@@ -346,7 +406,21 @@ export function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
   }
   RECCE_DATA = [...RECCE_DATA, newRecce]
   notifyData()
-  return newRecce
+
+  const result = await pushDataToGoogleSheets({
+    type: 'recce',
+    payload: {
+      job_id: (newRecce as any).job_id || newRecce.event,
+      client: newRecce.event,
+      reccee_date: newRecce.date,
+      location: newRecce.venue,
+      email: '',
+      description: newRecce.notes || '',
+      submitted_at: new Date().toISOString(),
+    },
+  })
+
+  return { ok: result.ok, recce: newRecce, error: result.ok ? undefined : result.error }
 }
 
 export function completeRecce(id: string) {

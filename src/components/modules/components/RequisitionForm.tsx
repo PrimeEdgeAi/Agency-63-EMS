@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
-import { pushDataToGoogleSheets } from '../../../data'
+import { submitRequisitionWorkflow } from '../../../data'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 
@@ -156,7 +156,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       submitted_at:      new Date().toISOString(),
     }
     try {
-      const result = await pushDataToGoogleSheets({ type: 'requisition', payload })
+      const result = await submitRequisitionWorkflow(payload)
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setRef('REQ-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)

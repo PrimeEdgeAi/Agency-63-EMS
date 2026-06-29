@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getEventsData, getPayRequestsData, subscribeData, addPayRequest, pushDataToGoogleSheets } from '../../data'
+import { getEventsData, getPayRequestsData, subscribeData, addPayRequest, submitPayRequestWorkflow } from '../../data'
 import { StatusBadge, Card, PageHeader, FilterPills, Button, Modal, Field, Input, Textarea, Select } from '../ui'
 
 const FILTER_OPTIONS = ['all', 'pending', 'approved', 'review', 'rejected']
@@ -53,7 +53,7 @@ export function PayRequestPage() {
         category,
       })
 
-      const sheetResult = await pushDataToGoogleSheets({ type: 'pay_request', request: newRequest })
+      const sheetResult = await submitPayRequestWorkflow(newRequest)
       setMessage(
         sheetResult.ok
           ? 'Pay request saved and Google Sheets sync attempted.'

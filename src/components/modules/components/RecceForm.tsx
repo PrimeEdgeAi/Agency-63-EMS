@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
-import { pushDataToGoogleSheets } from '../../../data'
+import { submitRecceWorkflow } from '../../../data'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 
@@ -167,7 +167,7 @@ export function RecceForm({ companyName, onBack }: Props) {
       permits, challenges, company: companyName, submitted_at: new Date().toISOString()
     }
     try {
-      const result = await pushDataToGoogleSheets({ type: 'recce', payload })
+      const result = await submitRecceWorkflow(payload)
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
       setRef('REC-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)

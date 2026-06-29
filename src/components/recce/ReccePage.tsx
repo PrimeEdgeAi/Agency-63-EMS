@@ -14,6 +14,7 @@ export function ReccePage() {
     notes: '',
   })
   const [syncMessage, setSyncMessage] = useState('')
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
     const unsubscribe = subscribeData(() => {
@@ -22,6 +23,12 @@ export function ReccePage() {
     })
     return unsubscribe
   }, [])
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [toast])
 
   useEffect(() => {
     const load = async () => {
@@ -42,19 +49,26 @@ export function ReccePage() {
     { label: 'Pending', value: recces.filter((r) => r.status === 'pending').length, icon: '⏳' },
   ]
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.event || !formData.venue || !formData.requestedBy || !formData.date) {
       alert('Please complete the recce request form before submitting.')
       return
     }
 
-    addRecce({
+    const result = await addRecce({
       event: formData.event,
       venue: formData.venue,
       requestedBy: formData.requestedBy,
       date: formData.date,
       notes: formData.notes,
     })
+
+    if (result.ok) {
+      setToast({ type: 'success', message: 'Recce submitted and synced successfully.' })
+    } else {
+      setToast({ type: 'error', message: result.error ?? 'Recce was saved locally but failed to sync.' })
+    }
+
     setFormData({
       event: events[0]?.title ?? '',
       venue: '',
@@ -74,6 +88,12 @@ export function ReccePage() {
       <PageHeader section="Business Modules" title="Recce Requisition">
         <Button onClick={() => setShowForm(true)}>+ New Requisition</Button>
       </PageHeader>
+
+      {toast && (
+        <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, background: toast.type === 'success' ? '#ecfdf3' : '#fef2f2', border: `1px solid ${toast.type === 'success' ? '#a7f3d0' : '#fecaca'}`, color: toast.type === 'success' ? '#166534' : '#991b1b' }}>
+          {toast.message}
+        </div>
+      )}
 
       {syncMessage && (
         <div style={{ marginBottom: 20, padding: '14px 18px', borderRadius: 14, background: '#eef2ff', border: '1px solid #c7d2fe', color: '#1e3a8a' }}>
@@ -173,9 +193,11 @@ export function ReccePage() {
               onChange={(e) => setFormData((prev) => ({ ...prev, event: e.target.value }))}
             >
               <option value="">Choose event…</option>
-              {events.map((e) => (
-                <option key={e.id} value={e.title}>{e.title}</option>
-              ))}
+              {events
+                .filter((e) => e.recceDone?.toLowerCase() !== 'yes')
+                .map((e) => (
+                  <option key={e.id} value={e.title}>{e.title}</option>
+                ))}
             </Select>
           </Field>
           <Field label="Venue Name">
