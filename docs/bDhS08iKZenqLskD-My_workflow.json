@@ -1,0 +1,205 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pay-claim",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -640,
+        -48
+      ],
+      "id": "99e8c63e-7f3e-4756-bdd8-203ef80b6feb",
+      "name": "Webhook",
+      "webhookId": "pay-claim-webhook-id"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst input = raw.body || raw;\n\n// Validate input\nif (!input.email) {\n  throw new Error('Email is required');\n}\nif (!input.job_id) {\n  throw new Error('Job ID is required');\n}\nif (!input.start_date || !input.end_date) {\n  throw new Error('Start and end dates are required');\n}\n\n// Calculate days worked\nconst startDate = new Date(input.start_date);\nconst endDate = new Date(input.end_date);\nconst daysWorked = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end date\n\nif (daysWorked < 1) {\n  throw new Error('End date must be after start date');\n}\n\nconst dailyRate = 2000;\nconst totalPay = daysWorked * dailyRate;\n\nreturn {\n  job_id: input.job_id,\n  description: input.description || '',\n  project_lead: input.project_lead || '',\n  email: input.email,\n  start_date: input.start_date,\n  end_date: input.end_date,\n  days_worked: daysWorked,\n  daily_rate: dailyRate,\n  total_pay: totalPay,\n  submitted_by: input.submitted_by || input.email,\n  submitted_at: new Date().toISOString(),\n  status: 'Pending'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        -48
+      ],
+      "id": "e86ed7ee-ef3f-48a5-b217-4ccb6c76cb73",
+      "name": "Calculate Days & Pay"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Claims Sheet",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job_ID": "={{ $json.job_id }}",
+            "Description": "={{ $json.description }}",
+            "Email": "={{ $json.email }}",
+            "Days Worked": "={{ $json.days_worked }}",
+            "Total Pay": "={{ $json.total_pay }}",
+            "Project Lead": "={{ $json.project_lead }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Lead",
+              "displayName": "Project Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Worked",
+              "displayName": "Days Worked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Pay",
+              "displayName": "Total Pay",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "7436186d-d050-46f9-bcdd-ab58821fd1fe",
+      "name": "Append to Pay Claims Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        272,
+        -48
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Pay Request Submitted ",
+        "emailType": "text",
+        "message": "=Hi  {{ $('Webhook').item.json.body.email}}\n\nThank you for subbmiting your pay request for \nJob ID: {{ $('Webhook').item.json.body.job_id }}\n\nDays worked :{{ $json['Days Worked'] }}\n\nAwaiting approvals!\n\nRegards\nPrimeEdgeAi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -48
+      ],
+      "id": "c7800f35-6fb4-4a19-bb5d-0a2e9837849c",
+      "name": "Send a message",
+      "webhookId": "744f96ba-81ff-45df-8f2b-bda365d2765d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Calculate Days & Pay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Days & Pay": {
+      "main": [
+        [
+          {
+            "node": "Append to Pay Claims Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Pay Claims Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

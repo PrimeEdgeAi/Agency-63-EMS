@@ -1,5 +1,5 @@
 {
-  "name": "Event Registration Workflow",
+  "name": "EventCreation",
   "nodes": [
     {
       "parameters": {
@@ -10,10 +10,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -880,
-        352
+        -1312,
+        128
       ],
-      "id": "0132a55f-db15-4229-a40e-6dbc2e4fd27b",
+      "id": "2fafbd43-892d-4724-99b7-d4746bbbd697",
       "name": "Webhook",
       "webhookId": "729fff57-4d1b-439c-9fec-9eb2746888cb"
     },
@@ -30,10 +30,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        480,
-        352
+        48,
+        128
       ],
-      "id": "c0623d1c-250c-444e-8788-6c994ea3b48e",
+      "id": "f34c30d8-f996-4fd9-9811-6eada48b2825",
       "name": "Send Approval Email1",
       "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
       "credentials": {
@@ -47,9 +47,9 @@
       "parameters": {
         "calendar": {
           "__rl": true,
-          "value": "9591e3d302c5fd793f5fa9e01c@group.calendar.google.com",
+          "value": "f80c8885c57577837cacb78cdf88558494b98d369c30d480ffee8eda74508017@group.calendar.google.com",
           "mode": "list",
-          "cachedResultName": "PrimeEdgeAI"
+          "cachedResultName": "PrimeEdge"
         },
         "start": "={{ $('Webhook').item.json.body.start_date }}",
         "end": "={{ $('Webhook').item.json.body.end_date }}",
@@ -67,10 +67,10 @@
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        240,
-        160
+        -192,
+        -64
       ],
-      "id": "27d9b3a5-131d-4351-a9d5-ee81dbd4f19a",
+      "id": "f1edc09b-9e19-43b7-b085-4748e3d3271e",
       "name": "Create Calendar Event1",
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -231,10 +231,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        80,
-        160
+        -352,
+        -64
       ],
-      "id": "2ee55980-6506-4a54-b367-0c3e0e2b2e90",
+      "id": "1562b3e6-a10f-4895-a59e-a381d82d6361",
       "name": "Append New Event1",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -357,6 +357,7 @@
               "id": "Project Assistant Email",
               "displayName": "Project Assistant Email",
               "required": false,
+              "defaultMatch": false,
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true
@@ -408,10 +409,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        144,
-        368
+        -288,
+        144
       ],
-      "id": "8e090a1e-d544-4582-9518-38ba7836d5c6",
+      "id": "321960af-c072-46bc-a88a-6b7359e33be3",
       "name": "Update Existing Event1",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -447,10 +448,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -208,
-        256
+        -640,
+        32
       ],
-      "id": "6f27a5ec-f017-4763-9dd4-40d37d248761",
+      "id": "b3ffc41f-15e2-4f58-981a-de326a37b4d4",
       "name": "Is Update?1"
     },
     {
@@ -466,10 +467,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        -208,
-        448
+        -640,
+        224
       ],
-      "id": "6ae9a124-920b-4f45-aec2-be61be58fb61",
+      "id": "6f2f8487-3818-4907-9b4a-99e4a0e3540b",
       "name": "Send Declined Email1",
       "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
       "credentials": {
@@ -506,10 +507,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -432,
-        352
+        -864,
+        128
       ],
-      "id": "8660963d-9e9c-4808-8427-ca3631535d5c",
+      "id": "d365c14d-f62c-48ae-8bd7-7eea8ce7cad7",
       "name": "Approved?1"
     },
     {
@@ -528,10 +529,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        -656,
-        352
+        -1088,
+        128
       ],
-      "id": "9386d9d5-79d2-4a3a-8140-87b877a5c27a",
+      "id": "f3ac0094-82f3-4d86-b9cb-f86b0de5fadc",
       "name": "Send message and wait for response1",
       "webhookId": "d1155d31-4afd-4183-8c01-73a14ab7f3b1",
       "credentials": {
@@ -635,9 +636,14 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
   "pinData": {},
+  "triggerCount": 1,
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "4c0eca2d4c629ccb08ed2ed684ce71bb81662b26d8f5ba84c8bf2ae31a306e44"
+    "templateCredsSetupCompleted": true
   }
 }

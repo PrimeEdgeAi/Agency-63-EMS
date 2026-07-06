@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
 import { submitRequisitionWorkflow } from '../../../data'
+import { logAuditEvent } from '../../../lib/audit'
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 
@@ -158,6 +159,13 @@ export function RequisitionForm({ companyName, onBack }: Props) {
     try {
       const result = await submitRequisitionWorkflow(payload)
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
+
+      void logAuditEvent({
+        action: 'submit_requisition',
+        entity_type: 'requisition',
+        entity_id: payload.job_id || payload.client || null,
+        metadata: { client: payload.client, urgency: payload.urgency },
+      })
       setRef('REQ-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
     } catch (error: any) {

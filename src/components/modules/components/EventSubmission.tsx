@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { submitEventWorkflow } from '../../../data'
+import { logAuditEvent } from '../../../lib/audit'
 
 const STATUS_OPTIONS = [
   'Project Creation',
@@ -82,6 +83,28 @@ export function EventSubmission({ companyName, onBack }: Props) {
         submittedAt: new Date().toISOString(),
       })
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
+
+      const payload = {
+        company: companyName,
+        client,
+        status,
+        description,
+        clientLead,
+        projectLead,
+        email,
+        assistants,
+        location,
+        startDate,
+        endDate,
+        submittedAt: new Date().toISOString(),
+      }
+
+      void logAuditEvent({
+        action: 'submit_event',
+        entity_type: 'event',
+        entity_id: payload.client || null,
+        metadata: { client: payload.client, company: payload.company },
+      })
       setSubmitted(true)
     } catch (error: any) {
       setError(error?.message || 'Submission failed. Please try again.')

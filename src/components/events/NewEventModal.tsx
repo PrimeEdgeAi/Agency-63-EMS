@@ -12,9 +12,15 @@ export function NewEventModal({ onClose }: NewEventModalProps) {
   })
 
   const categories = ['Tech', 'Corporate', 'Retreat', 'Launch', 'Community', 'Training', 'Strategy', 'Forum']
+  const today = new Date().toISOString().split('T')[0]
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target
+    setForm((f) => ({ ...f, date: value && value < today ? today : value }))
+  }
 
   return (
     <Modal title="New Event" onClose={onClose} width={580}>
@@ -26,7 +32,7 @@ export function NewEventModal({ onClose }: NewEventModalProps) {
           <Input value={form.location} onChange={set('location')} placeholder="Venue, City" />
         </Field>
         <Field label="Date">
-          <Input type="date" value={form.date} onChange={set('date')} />
+          <Input type="date" value={form.date} onChange={handleDateChange} min={today} />
         </Field>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

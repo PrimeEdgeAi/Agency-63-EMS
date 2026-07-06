@@ -2,30 +2,27 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
 import { submitRecceWorkflow } from '../../../data'
+import { loadGoogleSheetsConfig } from '../../../admin/components/GoogleSheetsConnection'
+import { logAuditEvent } from '../../../lib/audit'
 
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
-
-// ─── CSV helpers ─────────────────────────────────────────────────────────────
-function parseCSV(text: string) {
-  const rows: string[][] = []; let row: string[] = [], field = '', inQ = false
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i], nx = text[i + 1]
-    if (inQ) { if (ch === '"' && nx === '"') { field += '"'; i++ } else if (ch === '"') { inQ = false } else { field += ch } }
-    else { if (ch === '"') { inQ = true } else if (ch === ',') { row.push(field.trim()); field = '' } else if (ch === '\n') { row.push(field.trim()); rows.push(row); row = []; field = '' } else if (ch !== '\r') { field += ch } }
+// ─── Sheet helpers ─────────────────────────────────────────────────────────────
+async function loadSheetEvents() {
+  const config = loadGoogleSheetsConfig()
+  if (!config.webAppUrl) {
+    throw new Error('Google Sheets Web App URL is not configured.')
   }
-  if (field || row.length) { row.push(field.trim()); rows.push(row) }
-  return rows
-}
-function csvToObj(rows: string[][]) {
-  if (rows.length < 2) return []
-  const h = rows[0]
-  return rows.slice(1).filter(r => r.some(c => c)).map(r => { const o: Record<string, string> = {}; h.forEach((k, i) => { o[k.trim()] = (r[i] || '').trim() }); return o })
-}
-function emailMatch(email: string, row: Record<string, string>) {
-  const n = email.toLowerCase()
-  if ((row['Email'] || '').toLowerCase().split(',').map(e => e.trim()).includes(n)) return true
-  if ((row['Project Assistant Email'] || '').toLowerCase().split(',').map(e => e.trim()).includes(n)) return true
-  return false
+
+  const response = await fetch(config.webAppUrl)
+  if (!response.ok) {
+    throw new Error(`Could not reach the sheets endpoint (${response.status}).`)
+  }
+
+  const data = (await response.json()) as { events?: Record<string, string>[] }
+  if (!Array.isArray(data?.events) || data.events.length === 0) {
+    throw new Error('No events found in the sheets.')
+  }
+
+  return data.events
 }
 
 // ─── Shared input styles ──────────────────────────────────────────────────────
@@ -124,14 +121,14 @@ export function RecceForm({ companyName, onBack }: Props) {
   async function findJobs() {
     setError(''); setLoading(true)
     try {
-      const res = await fetch(SHEET_CSV_URL)
-      if (!res.ok) throw new Error('Could not reach the jobs sheet.')
-      const all = csvToObj(parseCSV(await res.text()))
-      const matched = all.filter(r => emailMatch(email.toLowerCase(), r))
-      if (!matched.length) throw new Error(`No jobs found for "${email}".`)
-      setJobs(matched); setStep(2)
-    } catch (e: any) { setError(e.message) }
-    finally { setLoading(false) }
+      const all = await loadSheetEvents()
+      setJobs(all)
+      setStep(2)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Auto-populate email from session and attempt job lookup
@@ -169,6 +166,13 @@ export function RecceForm({ companyName, onBack }: Props) {
     try {
       const result = await submitRecceWorkflow(payload)
       if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
+
+      void logAuditEvent({
+        action: 'submit_recce',
+        entity_type: 'recce',
+        entity_id: payload.job_id || payload.client || null,
+        metadata: { client: payload.client, venue: payload.location },
+      })
       setRef('REC-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
     } catch (error: any) {

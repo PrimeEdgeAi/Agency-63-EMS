@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   FiPlus, FiRefreshCw, FiDownload, FiSearch, FiEdit2, FiTrash2,
   FiArrowLeft, FiSave, FiCheck, FiX, FiUsers, FiChevronRight,
-  FiAlertCircle, FiCheckCircle, FiLoader, FiShield, FiUser, FiBriefcase,
+  FiAlertCircle, FiCheckCircle, FiLoader, FiShield, FiBriefcase,
 } from "react-icons/fi";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { loadDBConfig } from "./DBConnections";
@@ -18,6 +18,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type EmployeeRole = "finance" | "manager" | "Project Manager";
+export type EmploymentType = "Contract" | "Fulltime" | "Intern" | "Permanent";
 
 export interface Employee {
   id: number;
@@ -28,6 +29,8 @@ export interface Employee {
   national_id: string;
   join_date: string;
   department: string;
+  brand?: string;
+  employmentType: EmploymentType;
   full_time: boolean;
   manager_id: number | null;
 }
@@ -136,7 +139,7 @@ const Employees = () => {
   const [gsConfig, setGsConfig] = useState<GoogleSheetsConfig>(loadGoogleSheetsConfig());
   const [testingSheet, setTestingSheet] = useState(false);
 
-  const [form, setForm] = useState({ role: "Project Manager" as EmployeeRole, name: "", email: "", national_id: "", join_date: new Date().toISOString().split("T")[0], department: "Market", full_time: true, manager_id: null as number | null });
+  const [form, setForm] = useState({ role: "finance" as EmployeeRole, name: "", email: "", national_id: "", join_date: new Date().toISOString().split("T")[0], department: "Market", employmentType: "Fulltime" as EmploymentType, full_time: true, manager_id: null as number | null });
   const [formId, setFormId] = useState(0);
   const [formEmpId, setFormEmpId] = useState("");
 
@@ -162,6 +165,20 @@ const Employees = () => {
     load();
   }, [dbConfig]);
 
+  useEffect(() => {
+    if (!gsConfig.webAppUrl) return;
+
+    let active = true;
+    const pull = async () => {
+      if (!active) return;
+      await handlePullFromSheets(true);
+    };
+
+    void pull();
+    const timer = window.setInterval(() => { void pull(); }, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [gsConfig.webAppUrl, dbConfig]);
+
   // ─── Sync helpers ─────────────────────────────────────────────────────────
 
   const syncToSheets = async (updated: Employee[]) => {
@@ -185,21 +202,24 @@ const Employees = () => {
 
   // ─── Pull from Google Sheets ──────────────────────────────────────────────
 
-  const handlePullFromSheets = async () => {
+  const handlePullFromSheets = async (silent = false) => {
     const cfg = loadGoogleSheetsConfig();
-    if (!cfg.webAppUrl) { showToast("Google Sheets not configured", "error"); return; }
+    if (!cfg.webAppUrl) {
+      if (!silent) showToast("Google Sheets not configured", "error");
+      return;
+    }
 
     setPulling(true);
     const result = await pullEmployeesFromSheets(cfg);
     setPulling(false);
 
     if (!result.ok) {
-      showToast(`Pull failed: ${result.error}`, "error");
+      if (!silent) showToast(`Pull failed: ${result.error}`, "error");
       return;
     }
 
     if (result.employees.length === 0) {
-      showToast("No employees found in sheet", "info");
+      if (!silent) showToast("No employees found in sheet", "info");
       return;
     }
 
@@ -210,7 +230,7 @@ const Employees = () => {
       try { await sb.from(SUPABASE_TABLE).upsert(result.employees, { onConflict: "id" }); }
       catch {}
     }
-    showToast(`Pulled ${result.employees.length} employees from Sheets`);
+    if (!silent) showToast(`Pulled ${result.employees.length} employees from Sheets`);
   };
 
   // ─── Settings ────────────────────────────────────────────────────────────
@@ -229,13 +249,13 @@ const Employees = () => {
   const openCreate = () => {
     const id = nextId(employees);
     setFormId(id); setFormEmpId(genEmpId(id));
-    setForm({ role: "Project Manager", name: "", email: "", national_id: "", join_date: new Date().toISOString().split("T")[0], department: "Market", full_time: true, manager_id: null });
+    setForm({ role: "finance", name: "", email: "", national_id: "", join_date: new Date().toISOString().split("T")[0], department: "Market", employmentType: "Fulltime", full_time: true, manager_id: null });
     setEditingId(null); setPage("form");
   };
 
   const openEdit = (e: Employee) => {
     setFormId(e.id); setFormEmpId(e.emp_id);
-    setForm({ role: e.role, name: e.name, email: e.email, national_id: e.national_id, join_date: toIsoDate(e.join_date), department: e.department, full_time: e.full_time, manager_id: e.manager_id });
+    setForm({ role: e.role, name: e.name, email: e.email, national_id: e.national_id, join_date: toIsoDate(e.join_date), department: e.department, employmentType: e.employmentType, full_time: e.full_time, manager_id: e.manager_id });
     setEditingId(e.id); setPage("form");
   };
 
@@ -246,8 +266,12 @@ const Employees = () => {
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { showToast("Valid email is required", "error"); return; }
     if (!form.national_id.trim()) { showToast("National ID is required", "error"); return; }
     if (!form.join_date) { showToast("Join date is required", "error"); return; }
-    if (form.role === "Project Manager" && form.manager_id === null) { showToast("Project Managers must be assigned a manager", "error"); return; }
-
+    // Project Managers must be tied to a Manager
+    if (form.role === "Project Manager") {
+      if (!form.manager_id) { showToast("Project Managers must be assigned a Manager", "error"); return; }
+      const mgr = employees.find((x) => x.id === form.manager_id);
+      if (!mgr || mgr.role !== "manager") { showToast("Assigned Manager must have role 'Manager'", "error"); return; }
+    }
     const jd = formatDate(form.join_date);
     const updated: Employee[] = editingId !== null
       ? employees.map((e) => e.id === editingId ? { ...e, ...form, join_date: jd } : e)
@@ -274,8 +298,8 @@ const Employees = () => {
   };
 
   const exportCSV = () => {
-    const header = ["ID", "Emp ID", "Role", "Name", "National ID", "Join Date", "Department", "Full-time", "Manager ID"];
-    const rows = employees.map((e) => [e.id, e.emp_id, e.role, `"${e.name}"`, e.national_id, e.join_date, e.department, e.full_time ? "Yes" : "No", e.manager_id ?? ""]);
+    const header = ["ID", "Emp ID", "Role", "Name", "National ID", "Join Date", "Department", "Employment Type", "Manager ID"];
+    const rows = employees.map((e) => [e.id, e.emp_id, e.role, `"${e.name}"`, e.national_id, e.join_date, e.department, e.employmentType, e.manager_id ?? ""]);
     const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "employees.csv"; a.click();
@@ -285,13 +309,10 @@ const Employees = () => {
   // ─── Derived ──────────────────────────────────────────────────────────────
 
   const q = search.toLowerCase();
-  const filtered = employees.filter((e) => e.name.toLowerCase().includes(q) || e.department.toLowerCase().includes(q) || e.emp_id.toLowerCase().includes(q) || e.national_id.includes(q) || e.role.includes(q));
+  const filtered = employees.filter((e) => e.name.toLowerCase().includes(q) || e.department.toLowerCase().includes(q) || e.emp_id.toLowerCase().includes(q) || e.national_id.includes(q) || e.role.toLowerCase().includes(q) || e.employmentType.toLowerCase().includes(q));
   const financeList = filtered.filter((e) => e.role === "finance");
   const managerList = filtered.filter((e) => e.role === "manager");
   const agentList   = filtered.filter((e) => e.role === "Project Manager");
-  const projectManagerList = filtered.filter((e) => e.role === "Project Manager");
-  const managerOptions = employees.filter((e) => e.role === "manager");
-  const managerName = (id: number | null) => employees.find((e) => e.id === id)?.name ?? "-";
 
   const SyncPip = ({ status }: { status: SyncStatus }) => {
     if (status === "idle") return null;
@@ -310,7 +331,7 @@ const Employees = () => {
       <td style={{ padding: "12px 14px", color: "#555" }}>{e.join_date}</td>
       <td style={{ padding: "12px 14px" }}><span style={{ background: "#fff", border: "0.5px solid #ccc", borderRadius: 100, fontSize: 12, padding: "3px 10px" }}>{e.department}</span></td>
       <td style={{ padding: "12px 14px" }}>{e.full_time ? <FiCheck size={16} style={{ color: "#185FA5" }} /> : <FiX size={16} style={{ color: "#bbb" }} />}</td>
-      <td style={{ padding: "12px 14px", fontSize: 13, color: e.manager_id ? "#185FA5" : "#bbb" }}>{e.role === "Project Manager" ? managerName(e.manager_id) : <span style={{ color: "#ccc", fontSize: 12 }}>—</span>}</td>
+      <td style={{ padding: "12px 14px", fontSize: 13, color: e.manager_id ? "#185FA5" : "#bbb" }}>{employees.find((x) => x.id === e.manager_id)?.name ?? <span style={{ color: "#ccc", fontSize: 12 }}>—</span>}</td>
       <td style={{ padding: "12px 14px" }}>
         <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
           <button style={{ ...iconBtn, color: "#185FA5", border: "0.5px solid #B5D4F4" }} onClick={() => openEdit(e)} title="Edit"><FiEdit2 size={13} /></button>
@@ -354,7 +375,7 @@ const Employees = () => {
               {/* Pull from Sheets button */}
               <button
                 style={{ ...outlineBtn, borderColor: gsConfig.webAppUrl ? "#C0DD97" : "#d0d7e2", color: gsConfig.webAppUrl ? "#3B6D11" : "#999", opacity: pulling ? 0.6 : 1 }}
-                onClick={handlePullFromSheets}
+                onClick={() => void handlePullFromSheets(false)}
                 disabled={pulling || !gsConfig.webAppUrl}
                 title={gsConfig.webAppUrl ? "Pull employees from Google Sheets" : "Configure Google Sheets first"}
               >
@@ -404,7 +425,7 @@ const Employees = () => {
               <tbody>
                 {financeList.length > 0 && <><SectionHeader label="Finance" count={financeList.length} icon={<FiBriefcase size={13} />} />{financeList.map((e) => <EmployeeRow key={e.id} e={e} />)}</>}
                 {managerList.length > 0 && <><SectionHeader label="Managers" count={managerList.length} icon={<FiShield size={13} />} />{managerList.map((e) => <EmployeeRow key={e.id} e={e} />)}</>}
-                {agentList.length > 0   && <><SectionHeader label="Agents"   count={agentList.length}   icon={<FiUsers size={13} />}    />{agentList.map((e) => <EmployeeRow key={e.id} e={e} />)}</>}
+                {agentList.length > 0   && <><SectionHeader label="Project Managers" count={agentList.length} icon={<FiUsers size={13} />} />{agentList.map((e) => <EmployeeRow key={e.id} e={e} />)}</>}
                 {filtered.length === 0 && (
                   <tr><td colSpan={11} style={{ textAlign: "center", padding: "40px 0", color: "#aaa" }}>
                     <FiUsers size={28} style={{ display: "block", margin: "0 auto 8px" }} />
@@ -451,7 +472,17 @@ const Employees = () => {
               <div style={{ display: "flex", gap: 10 }}>
                 {(["finance", "manager", "Project Manager"] as EmployeeRole[]).map((r) => {
                   const m = ROLE_META[r]; const selected = form.role === r;
-                  return <button key={r} onClick={() => setForm({ ...form, role: r, manager_id: r !== "Project Manager" ? null : form.manager_id })} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, border: selected ? `2px solid ${m.color}` : "0.5px solid #d0d7e2", background: selected ? m.bg : "#fff", color: selected ? m.color : "#888", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.15s" }}>{m.icon} {m.label}</button>;
+                  return <button key={r} onClick={() => setForm({ ...form, role: r })} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, border: selected ? `2px solid ${m.color}` : "0.5px solid #d0d7e2", background: selected ? m.bg : "#fff", color: selected ? m.color : "#888", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.15s" }}>{m.icon} {m.label}</button>;
+                })}
+              </div>
+            </div>
+
+            <div style={{ gridColumn: "1/-1" }}>
+              <label style={labelStyle}>Employment Type</label>
+              <div style={{ display: "flex", gap: 10 }}>
+                {(["Contract", "Fulltime", "Intern", "Permanent"] as EmploymentType[]).map((type) => {
+                  const selected = form.employmentType === type;
+                  return <button key={type} onClick={() => setForm({ ...form, employmentType: type })} style={{ flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, border: selected ? "2px solid #185FA5" : "0.5px solid #d0d7e2", background: selected ? "#E6F1FB" : "#fff", color: selected ? "#185FA5" : "#888", transition: "all 0.15s" }}>{type}</button>;
                 })}
               </div>
             </div>
@@ -479,17 +510,17 @@ const Employees = () => {
               </select>
             </div>
 
-            {form.role === "Project Manager" && (
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={labelStyle}>Assigned Manager <span style={{ color: "#A32D2D", fontWeight: 400 }}>*required for agents</span></label>
-                {managerOptions.length === 0
-                  ? <div style={{ background: "#FFF8E1", border: "0.5px solid #F9A825", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#795548" }}><FiAlertCircle size={14} style={{ marginRight: 6, verticalAlign: -2 }} />No managers found. Create a Manager role employee first.</div>
-                  : <select style={{ ...inputStyle, borderColor: form.manager_id === null ? "#E24B4A" : "#d0d7e2" }} value={form.manager_id ?? ""} onChange={(e) => setForm({ ...form, manager_id: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">Select a manager...</option>
-                      {managerOptions.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.emp_id})</option>)}
-                    </select>}
-              </div>
-            )}
+            <div>
+              <label style={labelStyle}>Manager</label>
+              <select style={inputStyle} value={form.manager_id ?? ""} onChange={(e) => setForm({ ...form, manager_id: e.target.value ? Number(e.target.value) : null })}>
+                <option value="">— No manager —</option>
+                {employees.filter((x) => x.role === "manager").map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <p style={{ fontSize: 11, color: form.role === "Project Manager" && !form.manager_id ? "#A32D2D" : "#999", marginTop: 6 }}>{form.role === "Project Manager" ? "Required for Project Managers" : "Optional"}</p>
+            </div>
+
 
             <div style={{ gridColumn: "1/-1", display: "flex", alignItems: "center", gap: 10 }}>
               <input type="checkbox" id="fulltime" checked={form.full_time} onChange={(e) => setForm({ ...form, full_time: e.target.checked })} style={{ width: 18, height: 18, accentColor: "#185FA5", cursor: "pointer" }} />

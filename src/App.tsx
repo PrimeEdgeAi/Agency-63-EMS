@@ -16,6 +16,7 @@ import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 import AdminDashboard from './admin/AdminDashboard'
 import ManagerDashboard from './manager/ManagerDashboard'
 import FinanceDashboard from './finance/FinanceDashboard'
+import { logAuditEvent } from './lib/audit'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
@@ -23,16 +24,24 @@ const ALLOWED_EMAILS = [
   "kevin.n.mongare@gmail.com",
   "theafricanpulsepod@gmail.com",
   "kennedymongaremirambo@gmail.com",
+  "primeedgeaiofficial@gmail.com",
 ]
 
 const MANAGER_EMAILS = [
-  "ericmunene1410@gmail.com",
+  "primeedgeaiofficial@gmail.com",
   "theafricanpulsepod@gmail.com",
 ]
 
 const FINANCE_EMAILS = [
   "kennedymongaremirambo@gmail.com",
+  "emunene924@gmail.com",
 ]
+
+const APPROVED_EMAILS = Array.from(new Set([
+  ...ALLOWED_EMAILS,
+  ...MANAGER_EMAILS,
+  ...FINANCE_EMAILS,
+]))
 
 // 🔥 NEW: admin access error state message
 const ADMIN_ERROR_MESSAGE =
@@ -57,7 +66,7 @@ export default function App() {
             const email = sessionUser.email ?? ""
 
             // 🔐 BLOCK UNAUTHORIZED USERS
-            if (!ALLOWED_EMAILS.includes(email)) {
+            if (!APPROVED_EMAILS.includes(email)) {
               await supabase.auth.signOut()
               setUser(null)
 
@@ -72,6 +81,14 @@ export default function App() {
               ...sessionUser,
               email
             }
+
+            void logAuditEvent({
+              action: 'login',
+              entity_type: 'user',
+              entity_id: email,
+              user_email: email,
+              metadata: { source: 'auth_init' },
+            })
 
             setUser(appUser)
 
@@ -99,7 +116,7 @@ export default function App() {
           const email = session.user.email ?? ""
 
           // 🔐 BLOCK UNAUTHORIZED USERS
-          if (!ALLOWED_EMAILS.includes(email)) {
+          if (!APPROVED_EMAILS.includes(email)) {
             await supabase.auth.signOut()
             setUser(null)
 
@@ -112,6 +129,14 @@ export default function App() {
             ...session.user,
             email
           }
+
+          void logAuditEvent({
+            action: 'login',
+            entity_type: 'user',
+            entity_id: email,
+            user_email: email,
+            metadata: { source: 'auth_state_change' },
+          })
 
           setUser(appUser)
 
@@ -130,7 +155,14 @@ export default function App() {
   }, [])
 
   const handleLogout = async () => {
+    const currentEmail = user?.email
     await supabase.auth.signOut()
+    void logAuditEvent({
+      action: 'logout',
+      entity_type: 'user',
+      entity_id: currentEmail ?? null,
+      user_email: currentEmail ?? null,
+    })
     setUser(null)
     setActive('dashboard')
 

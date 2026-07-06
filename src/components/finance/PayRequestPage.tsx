@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getEventsData, getPayRequestsData, subscribeData, addPayRequest, submitPayRequestWorkflow } from '../../data'
+import { logAuditEvent } from '../../lib/audit'
 import { StatusBadge, Card, PageHeader, FilterPills, Button, Modal, Field, Input, Textarea, Select } from '../ui'
 
 const FILTER_OPTIONS = ['all', 'pending', 'approved', 'review', 'rejected']
@@ -53,6 +54,12 @@ export function PayRequestPage() {
       })
 
       const sheetResult = await submitPayRequestWorkflow(newRequest)
+      void logAuditEvent({
+        action: 'submit_pay_request',
+        entity_type: 'pay_request',
+        entity_id: newRequest.id,
+        metadata: { vendor: newRequest.vendor, amount: newRequest.amount, event: newRequest.event },
+      })
       setMessage(
         sheetResult.ok
           ? 'Pay request saved and Google Sheets sync attempted.'

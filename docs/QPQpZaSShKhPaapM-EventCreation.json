@@ -1,5 +1,5 @@
 {
-  "name": "Event Registration Workflow",
+  "name": "EventCreation",
   "nodes": [
     {
       "parameters": {
@@ -10,10 +10,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -880,
-        352
+        -2080,
+        416
       ],
-      "id": "0132a55f-db15-4229-a40e-6dbc2e4fd27b",
+      "id": "a520d401-a441-4931-9635-141336c3f642",
       "name": "Webhook",
       "webhookId": "729fff57-4d1b-439c-9fec-9eb2746888cb"
     },
@@ -30,24 +30,18 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        480,
-        352
+        -720,
+        416
       ],
-      "id": "c0623d1c-250c-444e-8788-6c994ea3b48e",
+      "id": "4ab968d2-ed65-4e3d-b23e-63c75a6eb74c",
       "name": "Send Approval Email1",
-      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928"
     },
     {
       "parameters": {
         "calendar": {
           "__rl": true,
-          "value": "9591e3d302c5fd793f5fa9e01c@group.calendar.google.com",
+          "value": "9591e3d302c5fd793f5fa9a0de0a706acc8015e4513b149bf06eeb2a60b9e01c@group.calendar.google.com",
           "mode": "list",
           "cachedResultName": "PrimeEdgeAI"
         },
@@ -67,17 +61,11 @@
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        240,
-        160
+        -960,
+        224
       ],
-      "id": "27d9b3a5-131d-4351-a9d5-ee81dbd4f19a",
-      "name": "Create Calendar Event1",
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "id": "7f5719d3-d966-4c32-9975-58dc91d6e319",
+      "name": "Create Calendar Event1"
     },
     {
       "parameters": {
@@ -231,17 +219,11 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        80,
-        160
+        -1120,
+        224
       ],
-      "id": "2ee55980-6506-4a54-b367-0c3e0e2b2e90",
-      "name": "Append New Event1",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "id": "2dcebc43-8ed4-4712-b9dc-4514f8308724",
+      "name": "Append New Event1"
     },
     {
       "parameters": {
@@ -357,6 +339,7 @@
               "id": "Project Assistant Email",
               "displayName": "Project Assistant Email",
               "required": false,
+              "defaultMatch": false,
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true
@@ -408,17 +391,11 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        144,
-        368
+        -1056,
+        432
       ],
-      "id": "8e090a1e-d544-4582-9518-38ba7836d5c6",
-      "name": "Update Existing Event1",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "id": "96f982b3-edde-4d63-bae2-03bb8feaf03a",
+      "name": "Update Existing Event1"
     },
     {
       "parameters": {
@@ -447,10 +424,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -208,
-        256
+        -1408,
+        320
       ],
-      "id": "6f27a5ec-f017-4763-9dd4-40d37d248761",
+      "id": "b6d85346-976f-420f-b2a5-0e94f37ce4d8",
       "name": "Is Update?1"
     },
     {
@@ -466,18 +443,12 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        -208,
-        448
+        -1408,
+        512
       ],
-      "id": "6ae9a124-920b-4f45-aec2-be61be58fb61",
+      "id": "534398a9-9de2-45be-8c99-8fcd73df7a56",
       "name": "Send Declined Email1",
-      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928"
     },
     {
       "parameters": {
@@ -506,10 +477,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -432,
-        352
+        -1632,
+        416
       ],
-      "id": "8660963d-9e9c-4808-8427-ca3631535d5c",
+      "id": "13aa4ee7-6d35-4706-8364-9fdabc73c7ab",
       "name": "Approved?1"
     },
     {
@@ -528,18 +499,12 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        -656,
-        352
+        -1856,
+        416
       ],
-      "id": "9386d9d5-79d2-4a3a-8140-87b877a5c27a",
+      "id": "c2fa5c32-ee9c-44d5-9100-b01897ba7cea",
       "name": "Send message and wait for response1",
-      "webhookId": "d1155d31-4afd-4183-8c01-73a14ab7f3b1",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "REDACTED",
-          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
-        }
-      }
+      "webhookId": "d1155d31-4afd-4183-8c01-73a14ab7f3b1"
     }
   ],
   "connections": {
@@ -635,9 +600,14 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
   "pinData": {},
+  "triggerCount": 0,
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "4c0eca2d4c629ccb08ed2ed684ce71bb81662b26d8f5ba84c8bf2ae31a306e44"
+    "templateCredsSetupCompleted": true
   }
 }

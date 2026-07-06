@@ -1,0 +1,278 @@
+{
+  "name": "Fraud Risk Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fraud-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "db0ae8a4-a93f-45af-8083-ade774b83743",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        112
+      ],
+      "webhookId": "fraud-check-webhook-001"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.transactionAmount }}",
+                    "rightValue": 50000,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "fffcedcc-c79c-4aab-a477-0d1e2a4c48ce"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH_AMOUNT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.ipAddress }}",
+                    "rightValue": "192.168.1.99",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d14b7972-b673-47f0-807b-f1e3c87a7c82"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FLAGGED_IP"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5b044973-6b69-47f7-ac86-76b70f49a737",
+      "name": "Risk Rules Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -432,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a7ca15cb-986d-421b-8329-5a8db11bc8b2",
+      "name": "Set HIGH Risk - Amount",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -144,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c56ac851-aef0-477b-bc43-494777cddaac",
+      "name": "Set HIGH Risk - IP",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -144,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "60e02332-1daf-47cb-8378-b0c77d47bbbd",
+      "name": "Set LOW Risk - Safe",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -144,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'success', data: $json }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1232b47-3129-4b42-b988-55fe876569dc",
+      "name": "Respond HIGH Amount",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'success', data: $json }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d70a6899-7295-410e-8a14-929b99f2886d",
+      "name": "Respond HIGH IP",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        144,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'success', data: $json }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "30f1cf06-2001-4ef3-87ff-de56fed5fc9c",
+      "name": "Respond LOW Safe",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        144,
+        256
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Risk Rules Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Rules Switch": {
+      "main": [
+        [
+          {
+            "node": "Set HIGH Risk - Amount",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set HIGH Risk - IP",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set LOW Risk - Safe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set HIGH Risk - Amount": {
+      "main": [
+        [
+          {
+            "node": "Respond HIGH Amount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set HIGH Risk - IP": {
+      "main": [
+        [
+          {
+            "node": "Respond HIGH IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set LOW Risk - Safe": {
+      "main": [
+        [
+          {
+            "node": "Respond LOW Safe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}

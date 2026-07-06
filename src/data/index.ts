@@ -47,10 +47,38 @@ interface SheetEvent {
 type SheetRequisition = Record<string, any>
 
 interface SheetDashboardData {
-  events: SheetEvent[]
+  events?: SheetEvent[]
   claims?: unknown[]
-  requisitions: SheetRequisition[]
+  pay_requests?: unknown[]
+  requisitions?: SheetRequisition[]
   roles?: unknown[]
+}
+
+interface SheetPayRequest {
+  ID?: string
+  id?: string
+  Event?: string
+  event?: string
+  Vendor?: string
+  vendor?: string
+  Amount?: number | string
+  amount?: number | string
+  Status?: string
+  status?: string
+  Date?: string
+  date?: string
+  Category?: string
+  category?: string
+}
+
+function parseNumericValue(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^0-9.-]/g, '')
+    const parsed = Number(cleaned)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
 }
 
 function normalizeSheetEventStatus(status: string): EventItem['status'] {
@@ -86,6 +114,53 @@ function mapSheetRequisitions(requisitions: SheetRequisition[]): RecceItem[] {
     status: 'pending',
     notes: req['Notes'] || (req['Amenities'] ? `Amenities: ${req['Amenities']}` : ''),
     job_id: req['Job_ID'] || undefined,
+  }))
+}
+
+function normalizeSheetPayStatus(status: string): PayRequest['status'] {
+  const normalized = status.toLowerCase()
+  if (normalized.includes('approve')) return 'approved'
+  if (normalized.includes('reject')) return 'rejected'
+  if (normalized.includes('review')) return 'review'
+  return 'pending'
+}
+
+function normalizeSheetRequisitionStatus(status: string): RequisitionItem['status'] {
+  const normalized = status.toLowerCase()
+  if (normalized.includes('approve')) return 'approved'
+  if (normalized.includes('reject')) return 'rejected'
+  return 'pending'
+}
+
+function mapSheetFinancePayRequests(claims: unknown[]): PayRequest[] {
+  return (claims as SheetPayRequest[]).map((claim, index) => ({
+    id: claim.ID || claim.id || `PR-SHEET-${String(index + 1).padStart(3, '0')}`,
+    event: claim.Event || claim.event || 'Sheet import',
+    vendor: claim.Vendor || claim.vendor || 'Unknown vendor',
+    amount: parseNumericValue(claim.Amount ?? claim.amount),
+    status: normalizeSheetPayStatus(claim.Status || claim.status || 'pending'),
+    date: claim.Date || claim.date || '',
+    category: claim.Category || claim.category || 'General',
+  }))
+}
+
+function mapSheetFinanceRequisitions(requisitions: SheetRequisition[]): RequisitionItem[] {
+  return requisitions.map((req, index) => ({
+    id: req['ID'] || req['id'] || `RQ-SHEET-${String(index + 1).padStart(3, '0')}`,
+    company: req['Company'] || req['company'] || 'Unknown company',
+    jobId: req['Job_ID'] || req['job_id'] || req['Job ID'] || '',
+    client: req['Client'] || req['client'] || '',
+    eventDescription: req['Event Description'] || req['event_description'] || req['Description'] || '',
+    requestorName: req['Requestor Name'] || req['requestor_name'] || req['Requested By'] || '',
+    requestorEmail: req['Requestor Email'] || req['requestor_email'] || '',
+    dateRequired: req['Date Required'] || req['date_required'] || '',
+    lineItems: [],
+    totalAmount: parseNumericValue(req['Total Amount'] ?? req['total_amount'] ?? req['Amount'] ?? req['amount']),
+    justification: req['Justification'] || req['justification'] || '',
+    notes: req['Notes'] || req['notes'] || '',
+    urgency: req['Urgency'] || req['urgency'] || 'Medium',
+    status: normalizeSheetRequisitionStatus(req['Status'] || req['status'] || 'pending'),
+    submittedAt: req['Submitted At'] || req['submitted_at'] || '',
   }))
 }
 
@@ -471,12 +546,26 @@ export async function syncSheetDataToLocalStore() {
     }
 
     const data = (await response.json()) as SheetDashboardData
-    if (!data?.events || !data?.requisitions) {
-      return { ok: false, error: 'Google Sheets response did not include valid events and requisitions.' }
+    if (!data || (!data.events && !data.requisitions && !data.claims && !data.pay_requests)) {
+      return { ok: false, error: 'Google Sheets response did not include any usable finance or event data.' }
     }
 
-    EVENTS_DATA = mapSheetEvents(data.events)
-    RECCE_DATA = mapSheetRequisitions(data.requisitions)
+    if (Array.isArray(data.events)) {
+      EVENTS_DATA = mapSheetEvents(data.events)
+    }
+
+    if (Array.isArray(data.requisitions)) {
+      RECCE_DATA = mapSheetRequisitions(data.requisitions)
+    }
+
+    if (Array.isArray(data.claims) || Array.isArray(data.pay_requests)) {
+      PAY_REQUESTS = mapSheetFinancePayRequests(Array.isArray(data.claims) ? data.claims : data.pay_requests || [])
+    }
+
+    if (Array.isArray(data.requisitions)) {
+      REQUISITIONS = mapSheetFinanceRequisitions(data.requisitions)
+    }
+
     notifyData()
     return { ok: true }
   } catch (error) {

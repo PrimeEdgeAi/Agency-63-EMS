@@ -6,12 +6,14 @@ import {
   getPayRequestsData,
   getRequisitionsData,
   subscribeData,
+  syncSheetDataToLocalStore,
   approvePayRequest,
   rejectPayRequest,
   approveRequisition,
   rejectRequisition,
 } from '../data'
 import type { AppUser, PayRequest, RequisitionItem } from '../types'
+import { logAuditEvent } from '../lib/audit'
 
 const FINANCE_EMAIL = 'kennedymongaremirambo@gmail.com'
 const CASH_THRESHOLD = 100000
@@ -36,10 +38,23 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
   const [error, setError] = useState('')
 
   useEffect(() => {
-    return subscribeData(() => {
+    let isMounted = true
+
+    const unsubscribe = subscribeData(() => {
       setPayRequests(getPayRequestsData())
       setRequisitions(getRequisitionsData())
     })
+
+    void syncSheetDataToLocalStore().then(() => {
+      if (!isMounted) return
+      setPayRequests(getPayRequestsData())
+      setRequisitions(getRequisitionsData())
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -92,6 +107,12 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
     if (approvalTarget.type === 'pay') {
       const updated = approvePayRequest(approvalTarget.id, paymentMethod, transactionId.trim() || undefined)
       if (updated) {
+        void logAuditEvent({
+          action: 'approve_pay_request',
+          entity_type: 'pay_request',
+          entity_id: approvalTarget.id,
+          metadata: { paymentMethod, transactionId: transactionId.trim() || undefined },
+        })
         setMessage({ type: 'success', text: `Pay request ${approvalTarget.reference} approved.` })
       } else {
         setMessage({ type: 'error', text: `Unable to approve pay request ${approvalTarget.reference}.` })
@@ -99,6 +120,12 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
     } else {
       const updated = approveRequisition(approvalTarget.id, paymentMethod, transactionId.trim() || undefined)
       if (updated) {
+        void logAuditEvent({
+          action: 'approve_requisition',
+          entity_type: 'requisition',
+          entity_id: approvalTarget.id,
+          metadata: { paymentMethod, transactionId: transactionId.trim() || undefined },
+        })
         setMessage({ type: 'success', text: `Requisition ${approvalTarget.reference} approved.` })
       } else {
         setMessage({ type: 'error', text: `Unable to approve requisition ${approvalTarget.reference}.` })
@@ -110,9 +137,11 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
   const handleReject = (type: 'pay' | 'req', id: string, reference: string) => {
     if (type === 'pay') {
       rejectPayRequest(id)
+      void logAuditEvent({ action: 'reject_pay_request', entity_type: 'pay_request', entity_id: id })
       setMessage({ type: 'success', text: `Pay request ${reference} rejected.` })
     } else {
       rejectRequisition(id)
+      void logAuditEvent({ action: 'reject_requisition', entity_type: 'requisition', entity_id: id })
       setMessage({ type: 'success', text: `Requisition ${reference} rejected.` })
     }
   }

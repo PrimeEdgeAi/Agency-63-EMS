@@ -46,9 +46,9 @@
 //       case "recce":
 //         writeRecce(ss, payload.payload || {});
 //         return successResponse({ status: "ok", type: payload.type });
-//       case "requisition":
-//         writeRequisition(ss, payload.payload || {});
-//         return successResponse({ status: "ok", type: payload.type });
+//      case "requisition":
+//        writeRequisition(ss, payload.payload || {});
+//        return successResponse({ status: "ok", type: payload.type });
 //       case "pay_request":
 //         writePayRequest(ss, payload.request || {});
 //         return successResponse({ status: "ok", type: payload.type });
@@ -69,12 +69,13 @@
 //     var ss = SpreadsheetApp.openById("1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE");
 //
 //     var events = readSheetAsObjects(ss, "Events", [
-//       "Job_ID", "Description", "Client", "Status", "Client_Lead", "Project_Lead", "Email", "Where", "Start_Date", "End_Date"
+//       "Job_ID", "Description", "Client", "Status", "Client_Lead", "Project_Lead", "Email", "Where", "Start_Date", "End_Date", "Recce_Done"
 //     ]);
 //
-//     var requisitions = readSheetAsObjects(ss, "Requisition", [
-//       "Job_ID", "Supplier", "Category", "Description", "Qty", "Unit_Cost", "Days", "Total"
-//     ]);
+    // Read Recce entries from the "Reccee" sheet so the app receives recce rows
+    // var requisitions = readSheetAsObjects(ss, "Reccee", [
+    //   "Email", "Job_ID", "Client", "Description", "Reccee Date", "Location", "Attendees", "Distance From Town", "Transport", "Residential Nearby", "Perimeter Wall", "Police Nearby", "Extra Security", "Security Notes", "Medical Nearby", "Medical Notes", "Amenities", "Other Facilities", "Entry Exit", "Event Layout", "Permits", "Challenges", "Company", "Submitted At"
+    // ]);
 //
 //     var claims = readSheetAsObjects(ss, "Claims Sheet", [
 //       "ID", "Event", "Vendor", "Amount", "Status", "Date", "Category"
@@ -94,7 +95,7 @@
 //
 // function writeRoles(ss, incoming) {
 //   var sheet = ss.getSheetByName("Roles");
-//   var HEADER = ["ID", "Emp ID", "Role", "Name", "Email", "National ID", "Join Date", "Department", "Full-time", "Manager"];
+//   var HEADER = ["ID", "Emp ID", "Role", "Name", "Email", "National ID", "Join Date", "Department", "Employment Type", "Full-time", "Manager ID", "Manager Name"];
 //   ensureHeader(sheet, HEADER);
 //
 //   if (sheet.getLastRow() > 1) {
@@ -111,29 +112,30 @@
 //       emp.national_id || "",
 //       emp.join_date || "",
 //       emp.department || "",
+//       emp.employmentType || "",
 //       emp.full_time || "",
-//       emp.manager_id || ""
+//       emp.manager_id || "",
+//       emp.manager_name || ""
 //     ]);
 //   });
 // }
 //
 // function writeEventSubmission(ss, payload) {
 //   var sheet = ss.getSheetByName("Events");
-//   var HEADER = ["Company", "Client", "Status", "Description", "Client Lead", "Project Lead", "Email", "Assistants", "Location", "Start Date", "End Date", "Submitted At"];
+//   var HEADER = ["Job_ID", "Description", "Client", "Status", "Client Lead", "Project Lead", "Email", "Where", "Start Date", "End Date", "Recce Done"];
 //   ensureHeader(sheet, HEADER);
 //   sheet.appendRow([
-//     payload.company || "",
+//     payload.job_id || "",
+//     payload.description || "",
 //     payload.client || "",
 //     payload.status || "",
-//     payload.description || "",
-//     payload.clientLead || "",
-//     payload.projectLead || "",
+//     payload.client_lead || "",
+//     payload.project_lead || "",
 //     payload.email || "",
-//     JSON.stringify(payload.assistants || []),
-//     payload.location || "",
-//     payload.startDate || "",
-//     payload.endDate || "",
-//     payload.submittedAt || ""
+//     payload.where || "",
+//     payload.start_date || "",
+//     payload.end_date || "",
+//     "No"
 //   ]);
 // }
 //
@@ -167,6 +169,21 @@
 //     payload.company || "",
 //     payload.submitted_at || ""
 //   ]);
+//
+//   // Mark the event as Recce Done
+//   var eventsSheet = ss.getSheetByName("Events");
+//   if (eventsSheet && payload.job_id) {
+//     var lastRow = eventsSheet.getLastRow();
+//     if (lastRow > 1) {
+//       var data = eventsSheet.getRange(2, 1, lastRow - 1, 11).getValues();
+//       for (var i = 0; i < data.length; i++) {
+//         if (data[i][0] == payload.job_id) {
+//           eventsSheet.getRange(i + 2, 11).setValue("Yes");
+//           break;
+//         }
+//       }
+//     }
+//   }
 // }
 //
 // function writeRequisition(ss, payload) {
@@ -245,7 +262,7 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Employee } from "./Team";
+import type { Employee, EmployeeRole, EmploymentType } from "./Team";
 
 const STORAGE_KEY = "btl_google_sheets_config";
 
@@ -279,6 +296,51 @@ export type PullResult =
   | { ok: true; employees: Employee[] }
   | { ok: false; error: string };
 
+const normalizeEmployeeRole = (value: unknown): EmployeeRole => {
+  const raw = String(value ?? "").trim();
+  const normalized = raw.toLowerCase();
+  if (["finance", "manager", "project manager"].includes(normalized)) {
+    return normalized === "project manager" ? "Project Manager" : (normalized as EmployeeRole);
+  }
+  if (raw === "Project Manager") return "Project Manager";
+  if (raw === "Manager") return "manager";
+  if (raw === "Finance") return "finance";
+  return "finance";
+};
+
+const normalizeEmploymentType = (value: unknown, fullTimeValue: string): EmploymentType => {
+  const type = String(value ?? "").trim();
+  if (["Contract", "Fulltime", "Intern", "Permanent"].includes(type)) {
+    return type as EmploymentType;
+  }
+  return fullTimeValue === "yes" || fullTimeValue === "true" || fullTimeValue === "y" || fullTimeValue === "1"
+    ? "Fulltime"
+    : "Contract";
+};
+
+const normalizeEmployee = (row: Record<string, unknown>, index: number): Employee => {
+  const rawId = Number(row.id ?? row.ID ?? row["ID"] ?? 0);
+  const id = Number.isFinite(rawId) && rawId > 0 ? rawId : index + 1;
+  const rawManagerId = row.manager_id ?? row.Manager ?? row["Manager"] ?? row.managerId ?? row["Manager ID"] ?? "";
+  const parsedManagerId = typeof rawManagerId === "number" ? rawManagerId : Number(String(rawManagerId).trim());
+  const fullTimeValue = String(row.employmentType ?? row["Employment Type"] ?? row.full_time ?? row["Full-time"] ?? row.fullTime ?? row["Full Time"] ?? "No").toLowerCase();
+
+  return {
+    id,
+    emp_id: String(row.emp_id ?? row["Emp ID"] ?? row.empId ?? row["EmpID"] ?? "").trim(),
+    role: normalizeEmployeeRole(row.role ?? row.Role ?? row["Role"]),
+    name: String(row.name ?? row.Name ?? row["Name"] ?? "").trim(),
+    email: String(row.email ?? row.Email ?? row["Email"] ?? "").trim(),
+    national_id: String(row.national_id ?? row["National ID"] ?? row.nationalId ?? row["NationalID"] ?? "").trim(),
+    join_date: String(row.join_date ?? row["Join Date"] ?? row.joinDate ?? row["JoinDate"] ?? "").trim(),
+    department: String(row.department ?? row.Department ?? row["Department"] ?? "").trim(),
+    brand: String(row.brand ?? row.Brand ?? row["Brand"] ?? "").trim() || undefined,
+    employmentType: normalizeEmploymentType(row.employmentType ?? row["Employment Type"], fullTimeValue),
+    full_time: fullTimeValue === "yes" || fullTimeValue === "true" || fullTimeValue === "y" || fullTimeValue === "1",
+    manager_id: Number.isFinite(parsedManagerId) ? parsedManagerId : null,
+  };
+};
+
 /** Push full employee list to the Roles tab (upsert, no-cors POST). */
 export const syncRolesToGoogleSheets = async (
   employees: Employee[],
@@ -296,7 +358,8 @@ export const syncRolesToGoogleSheets = async (
     national_id: e.national_id,
     join_date: e.join_date,
     department: e.department,
-    brand: e.brand,
+    brand: e.brand ?? "",
+    employmentType: e.employmentType,
     full_time: e.full_time ? "Yes" : "No",
     manager_id: e.manager_id ?? "",
   }));
@@ -306,7 +369,7 @@ export const syncRolesToGoogleSheets = async (
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ type: "roles", payload }),
     });
     return { ok: true, rowsSynced: payload.length };
   } catch (err) {
@@ -336,25 +399,28 @@ export const syncRolesToGoogleSheets = async (
  *     var sheet = ss.getSheetByName("Roles");
  *     var lastRow = sheet.getLastRow();
  *
- *     var employees = [];
- *     if (lastRow > 1) {
- *       var data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
- *       employees = data
- *         .filter(function(row) { return row[0] !== ""; })
- *         .map(function(row) {
- *           return {
- *             id:          Number(row[0]),
- *             emp_id:      String(row[1]),
- *             role:        String(row[2]),
- *             name:        String(row[3]),
- *             email:       String(row[4]),
- *             national_id: String(row[5]),
- *             join_date:   String(row[6]),
- *             department:  String(row[7]),
- *             full_time:   String(row[8]).toLowerCase() === "yes",
- *             manager_id:  row[9] !== "" ? Number(row[9]) : null
- *           };
- *         });
+    var employees = [];
+    if (lastRow > 1) {
+      // updated to include Employment Type and Manager Name (12 columns)
+      var data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+      employees = data
+        .filter(function(row) { return row[0] !== ""; })
+        .map(function(row) {
+          return {
+            id:              Number(row[0]),
+            emp_id:          String(row[1]),
+            role:            String(row[2]),
+            name:            String(row[3]),
+            email:           String(row[4]),
+            national_id:     String(row[5]),
+            join_date:       String(row[6]),
+            department:      String(row[7]),
+            employmentType:  String(row[8]),
+            full_time:       String(row[9]).toLowerCase() === "yes",
+            manager_id:      row[10] !== "" ? Number(row[10]) : null,
+            manager_name:    String(row[11]) || ""
+          };
+        });
  *     }
  *
  *     var json = JSON.stringify({ status: "ok", employees: employees });
@@ -410,7 +476,18 @@ export const pullEmployeesFromSheets = (
         resolve({ ok: false, error: data?.message ?? "Unknown error from Apps Script" });
         return;
       }
-      resolve({ ok: true, employees: data.employees as Employee[] });
+
+      const rawEmployees = Array.isArray(data?.roles)
+        ? data.roles
+        : Array.isArray(data?.employees)
+          ? data.employees
+          : [];
+
+      const employees = (rawEmployees as Record<string, unknown>[])
+        .map((row, index) => normalizeEmployee(row ?? {}, index))
+        .filter(Boolean);
+
+      resolve({ ok: true, employees });
     };
 
     // Inject script tag — JSONP request
