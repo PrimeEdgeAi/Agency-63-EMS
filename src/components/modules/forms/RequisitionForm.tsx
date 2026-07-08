@@ -59,6 +59,13 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [reqName, setReqName]           = useState('')
   const [reqEmail, setReqEmail]         = useState('')
   const [dateRequired, setDateRequired] = useState('')
+  const today = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
 
   // auto-load jobs for logged-in user
   useEffect(() => {
@@ -251,7 +258,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       </div>
       <div style={{ marginBottom: 16, maxWidth: 260 }}>
         <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Date Required <span style={{ color: '#e74c3c' }}>*</span></div>
-        <input style={inp} type="date" value={dateRequired} onChange={e => setDateRequired(e.target.value)} />
+        <input style={inp} type="date" value={dateRequired} min={today} onChange={e => setDateRequired(e.target.value < today ? today : e.target.value)} />
       </div>
 
       {/* ── Line Items ── */}

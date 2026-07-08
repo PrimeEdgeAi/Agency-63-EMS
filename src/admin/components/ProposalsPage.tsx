@@ -16,6 +16,7 @@ export interface Proposal {
 interface ProposalsPageProps {
   proposals: Proposal[]
   loading: boolean
+  pendingCount: number
   title: string
   setTitle: (val: string) => void
   budget: string
@@ -31,6 +32,7 @@ interface ProposalsPageProps {
 export function ProposalsPage({
   proposals,
   loading,
+  pendingCount,
   title,
   setTitle,
   budget,
@@ -50,9 +52,14 @@ export function ProposalsPage({
         <h1 style={{ marginBottom: 24, fontSize: 32, fontWeight: 700, color: '#111', fontFamily: 'Georgia, serif' }}>
           Proposals
         </h1>
-        <p style={{ color: '#6b7280', marginBottom: 24 }}>
-          Manage and track all submitted proposals
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+          <p style={{ color: '#6b7280', margin: 0 }}>
+            Manage and track all submitted proposals
+          </p>
+          <span style={{ background: '#b91c1c', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', minWidth: 80, justifyContent: 'center' }}>
+            Pending {pendingCount}
+          </span>
+        </div>
 
         {/* Add Proposal Form */}
         <div style={{

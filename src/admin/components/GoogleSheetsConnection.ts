@@ -122,7 +122,7 @@
 //
 // function writeEventSubmission(ss, payload) {
 //   var sheet = ss.getSheetByName("Events");
-//   var HEADER = ["Job_ID", "Description", "Client", "Status", "Client Lead", "Project Lead", "Email", "Where", "Start Date", "End Date", "Recce Done"];
+//   var HEADER = ["Job_ID", "Description", "Client", "Status", "Client Lead", "Project Lead", "Email", "Project Assistant", "Project Assistant Email", "Where", "Start Date", "End Date", "Recce Done"];
 //   ensureHeader(sheet, HEADER);
 //   sheet.appendRow([
 //     payload.job_id || "",
@@ -132,6 +132,8 @@
 //     payload.client_lead || "",
 //     payload.project_lead || "",
 //     payload.email || "",
+//     payload.project_assistant || "",
+//     payload.project_assistant_email || "",
 //     payload.where || "",
 //     payload.start_date || "",
 //     payload.end_date || "",

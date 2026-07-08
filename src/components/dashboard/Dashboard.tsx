@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import type { PageId, AppUser } from '../../types'
+import { DashboardHeader, KpiCard as OverviewKpiCard, SectionHeader, ShortcutCard as OverviewShortcutCard } from './components/DashboardOverviewCards'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -138,70 +139,6 @@ function StatusBadge({ status }: { status: string }) {
     }}>
       {status}
     </span>
-  )
-}
-
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, accent, icon }: {
-  label: string; value: string; sub: string; accent: string; icon: React.ReactNode
-}) {
-  return (
-    <div style={{
-      ...card,
-      flex: 1,
-      borderTop: `3px solid ${accent}`,
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
-            {label}
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: C.text, lineHeight: 1, fontFamily: 'Georgia, serif' }}>
-            {value}
-          </div>
-          <div style={{ fontSize: 12, color: C.textFaint, marginTop: 5 }}>{sub}</div>
-        </div>
-        <div style={{
-          width: 38, height: 38, borderRadius: 8,
-          background: `${accent}15`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: accent, flexShrink: 0,
-        }}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Shortcut Card ────────────────────────────────────────────────────────────
-function ShortcutCard({ label, value, sub, accent, onClick }: {
-  label: string; value: string; sub: string; accent: string; onClick?: () => void
-}) {
-  const [hov, setHov] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        ...card,
-        padding: '14px 16px',
-        textAlign: 'left',
-        cursor: 'pointer',
-        width: '100%',
-        border: `1px solid ${hov ? accent : C.border}`,
-        background: hov ? `${accent}08` : C.panel,
-        transition: 'all .15s',
-        borderLeft: `4px solid ${accent}`,
-      }}
-    >
-      <div style={{ fontSize: 20, fontWeight: 700, color: accent, fontFamily: 'Georgia, serif' }}>{value}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 4 }}>{label}</div>
-      <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>{sub}</div>
-    </button>
   )
 }
 
@@ -358,60 +295,16 @@ export function Dashboard({ setActive }: DashboardProps) {
   return (
     <div style={{ background: C.pageBg, minHeight: '100vh', fontFamily: "'DM Sans', 'Georgia', sans-serif" }}>
 
-      {/* ── Sticky Top Bar — identical feel to sidebar header ── */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
-        background: C.bg,
-        borderBottom: `1px solid ${C.blue}`,   // matches sidebar logo border
-        padding: '0 28px',
-        display: 'flex', alignItems: 'stretch', justifyContent: 'space-between',
-      }}>
-        {/* Left: breadcrumb + title */}
-        <div style={{ padding: '16px 0 14px' }}>
-          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 3 }}>Home / Dashboard</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: 'Georgia, serif', letterSpacing: '-0.3px' }}>
-            Dashboard
-          </div>
-        </div>
-
-        {/* Right: date + search bar + notification */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: C.textFaint }}>{today}</span>
-
-          {/* Search */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: '#f9fafb', border: `1px solid ${C.border}`,
-            borderRadius: 6, padding: '7px 12px', cursor: 'pointer',
-          }}>
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke={C.textFaint} strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <span style={{ fontSize: 12, color: C.textFaint }}>Search</span>
-            <span style={{ fontSize: 10, color: C.textFaint, background: C.border, borderRadius: 3, padding: '1px 5px' }}>⌘K</span>
-          </div>
-
-          {/* Bell */}
-          <div style={{ position: 'relative', cursor: 'pointer' }}>
-            <div style={{ background: '#f9fafb', border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 9px', display: 'flex' }}>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={C.textMuted} strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            </div>
-            <div style={{
-              position: 'absolute', top: -4, right: -4,
-              width: 16, height: 16, background: C.blue, borderRadius: '50%',
-              fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontWeight: 700,
-            }}>5</div>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader title="Dashboard" subtitle="Home / Dashboard" dateLabel={today} theme={C} />
 
       <div style={{ padding: '24px 28px', maxWidth: 1400 }}>
 
         {/* ── KPI Cards ── */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 24 }}>
-          <KpiCard label="Total Events"      value={String(EVENTS.length)} sub="All time registered"   accent={C.blue}   icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} />
-          <KpiCard label="Active Events"     value={String(activeEvents)}  sub="Currently in pipeline" accent={C.green}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>} />
-          <KpiCard label="Total Claims"      value={fmtKES(totalClaims)}  sub="Staff payouts logged"   accent={C.amber}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} />
-          <KpiCard label="Requisition Value" value={fmtKES(totalReq)}     sub="Procurement committed"  accent={C.red}    icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
+          <OverviewKpiCard label="Total Events"      value={String(EVENTS.length)} sub="All time registered"   accent={C.blue}   icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} theme={C} />
+          <OverviewKpiCard label="Active Events"     value={String(activeEvents)}  sub="Currently in pipeline" accent={C.green}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>} theme={C} />
+          <OverviewKpiCard label="Total Claims"      value={fmtKES(totalClaims)}  sub="Staff payouts logged"   accent={C.amber}  icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} theme={C} />
+          <OverviewKpiCard label="Requisition Value" value={fmtKES(totalReq)}     sub="Procurement committed"  accent={C.red}    icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} theme={C} />
         </div>
 
         {/* ── Proposals Snapshot (from Admin) ── */}
@@ -436,33 +329,30 @@ export function Dashboard({ setActive }: DashboardProps) {
 
         {/* ── Quick Access Shortcuts ── */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'Georgia, serif', letterSpacing: '-0.2px' }}>
-              Quick Access
-            </h2>
-          </div>
+          <SectionHeader title="Quick Access" theme={C} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            <ShortcutCard label="Events"           value={String(EVENTS.length)}     sub="View all activations"    accent={C.blue}   onClick={() => setActive('Events' as PageId)} />
-            <ShortcutCard label="Claims"           value={fmtKES(totalClaims)}       sub="Staff pay requests"      accent={C.amber}  onClick={() => setActive('Pay Requests' as PageId)} />
-            <ShortcutCard label="Reccee Coverage"  value={`${recceeHit}/${EVENTS.length}`} sub="Sites scouted"    accent={C.green}  onClick={() => setActive('Reports' as PageId)} />
-            <ShortcutCard label="Requisitions"     value={String(REQS.length)}       sub="Procurement lines"       accent={C.red}    onClick={() => setActive('Reports' as PageId)} />
+            <OverviewShortcutCard label="Events"           value={String(EVENTS.length)}     sub="View all activations"    accent={C.blue}   onClick={() => setActive('Events' as PageId)} theme={C} />
+            <OverviewShortcutCard label="Claims"           value={fmtKES(totalClaims)}       sub="Staff pay requests"      accent={C.amber}  onClick={() => setActive('Pay Requests' as PageId)} theme={C} />
+            <OverviewShortcutCard label="Reccee Coverage"  value={`${recceeHit}/${EVENTS.length}`} sub="Sites scouted"    accent={C.green}  onClick={() => setActive('Reports' as PageId)} theme={C} />
+            <OverviewShortcutCard label="Requisitions"     value={String(REQS.length)}       sub="Procurement lines"       accent={C.red}    onClick={() => setActive('Reports' as PageId)} theme={C} />
           </div>
         </div>
 
         {/* ── Event Pipeline Kanban ── */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'Georgia, serif', letterSpacing: '-0.2px' }}>
-              Event Pipeline
-            </h2>
-            <span style={{
-              fontSize: 11, fontWeight: 700, color: C.blue,
-              background: C.blueLight, border: `1px solid ${C.blueBorder}`,
-              borderRadius: 4, padding: '2px 10px',
-            }}>
-              {EVENTS.length} EVENTS
-            </span>
-          </div>
+          <SectionHeader
+            title="Event Pipeline"
+            theme={C}
+            action={
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: C.blue,
+                background: C.blueLight, border: `1px solid ${C.blueBorder}`,
+                borderRadius: 4, padding: '2px 10px',
+              }}>
+                {EVENTS.length} EVENTS
+              </span>
+            }
+          />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             <KanbanCol label="Event Creation" events={kanbanGroups.creation}  accent={C.blue}  />
             <KanbanCol label="Event Update"   events={kanbanGroups.update}    accent={C.amber} />

@@ -8,7 +8,7 @@ type WorkflowKind = 'event' | 'recce' | 'requisition' | 'pay_request'
 
 const N8N_WORKFLOW_URLS: Record<WorkflowKind, string> = {
   event: (import.meta.env.VITE_N8N_EVENT_WORKFLOW_URL as string) || 'https://kenmongare.app.n8n.cloud/webhook/event-registration',
-  recce: (import.meta.env.VITE_N8N_RECCE_WORKFLOW_URL as string) || '',
+  recce: (import.meta.env.VITE_N8N_RECCE_WORKFLOW_URL as string) || 'https://kenmongare.app.n8n.cloud/webhook/reccee-assessment',
   requisition: (import.meta.env.VITE_N8N_REQUISITION_WORKFLOW_URL as string) || '',
   pay_request: (import.meta.env.VITE_N8N_PAY_REQUEST_WORKFLOW_URL as string) || '',
 }
@@ -79,6 +79,65 @@ function parseNumericValue(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0
   }
   return 0
+}
+
+const JOB_ID_STORAGE_KEY = 'eventPortal.knownEventJobIds'
+
+function loadKnownEventJobIds() {
+  if (typeof window === 'undefined' || !window.localStorage) return new Set<string>()
+  try {
+    const raw = window.localStorage.getItem(JOB_ID_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    if (Array.isArray(parsed)) {
+      return new Set(parsed.filter((item): item is string => typeof item === 'string'))
+    }
+  } catch (error) {
+    // ignore invalid persisted state
+  }
+  return new Set<string>()
+}
+
+function saveKnownEventJobIds() {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    window.localStorage.setItem(JOB_ID_STORAGE_KEY, JSON.stringify(Array.from(KNOWN_EVENT_JOB_IDS)))
+  } catch (error) {
+    // ignore storage failures
+  }
+}
+
+const KNOWN_EVENT_JOB_IDS = loadKnownEventJobIds()
+
+function getRandomFiveDigits() {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const randomArray = new Uint32Array(1)
+    crypto.getRandomValues(randomArray)
+    return String(randomArray[0] % 100000).padStart(5, '0')
+  }
+  return String(Math.floor(Math.random() * 100000)).padStart(5, '0')
+}
+
+export function generateEventJobId() {
+  const prefix = 'EMS-'
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const candidate = `${prefix}${getRandomFiveDigits()}`
+    if (!KNOWN_EVENT_JOB_IDS.has(candidate)) {
+      KNOWN_EVENT_JOB_IDS.add(candidate)
+      saveKnownEventJobIds()
+      return candidate
+    }
+  }
+  throw new Error('Unable to generate a unique EMS job ID. Please try again.')
+}
+
+function refreshKnownEventJobIds() {
+  KNOWN_EVENT_JOB_IDS.clear()
+  for (const event of EVENTS_DATA) {
+    if (event.job_id) {
+      KNOWN_EVENT_JOB_IDS.add(event.job_id)
+    }
+  }
+  saveKnownEventJobIds()
 }
 
 function normalizeSheetEventStatus(status: string): EventItem['status'] {
@@ -217,8 +276,12 @@ export async function pushDataToGoogleSheets(payload: unknown) {
   }
 }
 
-export async function submitEventWorkflow(payload: unknown) {
-  return pushDataToGoogleSheets({ type: 'event_submission', payload })
+export async function submitEventWorkflow(payload: unknown): Promise<{ ok: boolean; jobId?: string; error?: string }> {
+  const payloadObject = (typeof payload === 'object' && payload !== null) ? { ...(payload as Record<string, unknown>) } : {}
+  const jobId = typeof payloadObject.job_id === 'string' && payloadObject.job_id ? payloadObject.job_id as string : generateEventJobId()
+  payloadObject.job_id = jobId
+  const result = await pushDataToGoogleSheets({ type: 'event_submission', payload: payloadObject })
+  return { ...result, jobId: result.ok ? jobId : undefined }
 }
 
 export async function submitRecceWorkflow(payload: unknown) {
@@ -231,6 +294,36 @@ export async function submitRequisitionWorkflow(payload: unknown) {
 
 export async function submitPayRequestWorkflow(payload: unknown) {
   return pushDataToGoogleSheets({ type: 'pay_request', payload })
+}
+
+// Fetch the raw sheet/webhook payload and return the count of events
+// that have not had a recce completed (Recce Done === '' or 'No').
+export async function fetchPendingRecceCountFromWebhook(): Promise<number> {
+  const url = 'https://kenmongare.app.n8n.cloud/webhook/get-sheet-data'
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return 0
+    const data = await response.json()
+    const rows = Array.isArray(data)
+      ? data
+      : Array.isArray((data as any).events)
+        ? (data as any).events
+        : Array.isArray((data as any).data)
+          ? (data as any).data
+          : Array.isArray((data as any).rows)
+            ? (data as any).rows
+            : []
+
+    let count = 0
+    for (const row of rows) {
+      const val = (row && (row['Recce Done'] ?? row['Recce_Done'] ?? row['recce_done'] ?? row['reccee_done'])) || ''
+      const s = typeof val === 'string' ? val.trim().toLowerCase() : String(val).trim().toLowerCase()
+      if (s === '' || s === 'no') count += 1
+    }
+    return count
+  } catch {
+    return 0
+  }
 }
 
 export const APPROVED_EMAILS: string[] = [
@@ -251,6 +344,7 @@ export let EVENTS_DATA: EventItem[] = [
     category: 'Tech',
     story: 'Bringing together East Africa\'s brightest minds to shape the digital future.',
     image: '🏙️',
+    job_id: 'EMS-00001',
   },
   {
     id: 2,
@@ -552,6 +646,9 @@ export async function syncSheetDataToLocalStore() {
 
     if (Array.isArray(data.events)) {
       EVENTS_DATA = mapSheetEvents(data.events)
+      refreshKnownEventJobIds()
+    } else {
+      refreshKnownEventJobIds()
     }
 
     if (Array.isArray(data.requisitions)) {
@@ -586,12 +683,30 @@ export async function addRecce(requisition: Omit<RecceItem, 'id' | 'status'>) {
   const result = await pushDataToGoogleSheets({
     type: 'recce',
     payload: {
+      email: '',
       job_id: (newRecce as any).job_id || newRecce.event,
       client: newRecce.event,
+      description: newRecce.notes || '',
+      project_lead_name: newRecce.requestedBy,
       reccee_date: newRecce.date,
       location: newRecce.venue,
-      email: '',
-      description: newRecce.notes || '',
+      attendees: '',
+      distance_from_town: '',
+      public_transport: '',
+      residential_nearby: '',
+      perimeter_wall: '',
+      police_nearby: '',
+      extra_security: '',
+      security_notes: '',
+      medical_nearby: '',
+      medical_notes: '',
+      amenities: [],
+      other_facilities: '',
+      entry_exit: '',
+      event_layout: '',
+      permits: '',
+      challenges: newRecce.notes || '',
+      company: '',
       submitted_at: new Date().toISOString(),
     },
   })

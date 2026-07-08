@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase'
 import { loadGoogleSheetsConfig } from './components/GoogleSheetsConnection'
 
 const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || ''
+const PROPOSALS_WEBHOOK = 'https://kenmongare.app.n8n.cloud/webhook/ProposalsCheck'
 const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
 
 function nowIso() { return new Date().toISOString() }
@@ -33,12 +34,31 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
   async function loadProposals() {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('*')
-        .order('submitted_at', { ascending: false })
-      if (error) throw error
-      setProposals((data || []) as Proposal[])
+      const response = await fetch(PROPOSALS_WEBHOOK, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to load proposals (${response.status})`)
+      }
+      const data = await response.json() as { count?: number; items?: any[] }
+      const items = Array.isArray(data.items) ? data.items : []
+      const mapped = items.map((item, index) => {
+        const statusRaw = (item['Proposal Done'] ?? item.Proposal_Done ?? item.proposal_done ?? 'No').toString().trim().toLowerCase()
+        const proposalStatus: Proposal['status'] = statusRaw === 'yes' || statusRaw === 'approved' ? 'approved' : 'pending'
+        return {
+          id: item.Job_ID || item.id || `proposal-${index + 1}`,
+          title: item.Description || item.Title || item.Job_ID || `Proposal ${index + 1}`,
+          budget: Number(item.Budget ?? item.budget ?? 0) || 0,
+          submitted_by: item['Client'] || item.Email || item['submitted_by'] || 'Unknown',
+          submitted_at: item['Start Date'] || item['submitted_at'] || nowIso(),
+          file_name: item['file_name'] || item.FileName || item['Proposal File'] || null,
+          status: proposalStatus,
+          approved_at: proposalStatus === 'approved' ? (item['approved_at'] || item.Approved_At || nowIso()) : null,
+          last_reminder_at: item['last_reminder_at'] || item.Last_Reminder_At || null,
+        }
+      })
+      setProposals(mapped)
     } catch (e: any) {
       console.error('Load proposals error', e.message || e)
     } finally { setLoading(false) }
@@ -184,6 +204,7 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
             onApprove={approve}
             onSendReminder={sendReminder}
             isDelayed={isDelayed}
+            pendingCount={proposals.filter((p) => p.status === 'pending').length}
           />
         )}
         {active === 'settings' && <SettingsPage />}

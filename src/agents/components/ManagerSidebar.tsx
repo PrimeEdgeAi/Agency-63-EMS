@@ -1,17 +1,22 @@
-import { FiFileText, FiSettings, FiBarChart2, FiUsers, FiLogOut } from 'react-icons/fi'
+import { FiCalendar, FiClipboard, FiFileText, FiMapPin, FiCheckCircle, FiBriefcase, FiLogOut, FiStar, FiShield } from 'react-icons/fi'
 
 interface ManagerSidebarProps {
   active: string
   setActive: (page: string) => void
   onLogout: () => void
+  pendingCount: number
 }
 
-export function ManagerSidebar({ active, setActive, onLogout }: ManagerSidebarProps) {
+export function ManagerSidebar({ active, setActive, onLogout, pendingCount }: ManagerSidebarProps) {
   const menuItems = [
-    { id: 'overview', label: 'Overview', icon: FiBarChart2 },
-    { id: 'agents', label: 'My Agents', icon: FiUsers },
+    { id: 'overview', label: 'Overview', icon: FiStar },
+    { id: 'events', label: 'Events', icon: FiCalendar },
+    { id: 'recce', label: 'Recce', icon: FiMapPin },
     { id: 'proposals', label: 'Proposals', icon: FiFileText },
-    { id: 'settings', label: 'Settings', icon: FiSettings },
+    { id: 'requisitions', label: 'Requisitions', icon: FiClipboard },
+    { id: 'completed', label: 'Completed', icon: FiCheckCircle },
+    { id: 'jobs', label: 'Jobs', icon: FiBriefcase },
+    { id: 'payments', label: 'Payments', icon: FiShield },
   ]
 
   return (
@@ -38,7 +43,7 @@ export function ManagerSidebar({ active, setActive, onLogout }: ManagerSidebarPr
           margin: 0,
           fontFamily: 'Georgia, serif',
         }}>
-          Manager Portal
+          Agents Portal
         </h2>
       </div>
 
@@ -52,6 +57,7 @@ export function ManagerSidebar({ active, setActive, onLogout }: ManagerSidebarPr
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = active === item.id
+          const showBadge = item.id === 'proposals' && pendingCount > 0
           return (
             <button
               key={item.id}
@@ -80,7 +86,12 @@ export function ManagerSidebar({ active, setActive, onLogout }: ManagerSidebarPr
               }}
             >
               <Icon size={17} />
-              <span>{item.label}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {showBadge && (
+                <span style={{ marginLeft: 'auto', background: '#ef4444', color: '#fff', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
+                  {pendingCount}
+                </span>
+              )}
             </button>
           )
         })}

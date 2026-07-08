@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Button } from '../../components/ui'
 
 export interface Proposal {
   id: string
@@ -15,21 +14,26 @@ export interface Proposal {
 interface ProposalsPageProps {
   proposals: Proposal[]
   loading: boolean
-  onApprove: (id: string) => void
+  pendingCount: number
   isDelayed: (p: Proposal) => boolean
 }
 
-export function ProposalsPage({ proposals, loading, onApprove, isDelayed }: ProposalsPageProps) {
+export function ProposalsPage({ proposals, loading, pendingCount, isDelayed }: ProposalsPageProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   return (
     <div style={{ padding: 32 }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 12, fontSize: 32, fontWeight: 700, color: '#111', fontFamily: 'Georgia, serif' }}>
-          Proposals
-        </h1>
-        <p style={{ color: '#6b7280', margin: 0 }}>
-          Review proposals submitted by your agents and approve work that is ready to go.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#111', fontFamily: 'Georgia, serif' }}>
+            Proposals
+          </h1>
+          <span style={{ background: '#b91c1c', color: '#fff', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 700 }}>
+            Pending {pendingCount}
+          </span>
+        </div>
+        <p style={{ color: '#6b7280', margin: '12px 0 0 0' }}>
+          Review proposals submitted by your agents.
         </p>
       </div>
 
@@ -92,7 +96,7 @@ export function ProposalsPage({ proposals, loading, onApprove, isDelayed }: Prop
                         Delayed
                       </span>
                     ) : (
-                      <span style={{ background: '#f3f4f6', color: '#374151', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12 }}>
+                      <span style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12 }}>
                         Pending
                       </span>
                     )}
@@ -101,11 +105,9 @@ export function ProposalsPage({ proposals, loading, onApprove, isDelayed }: Prop
               </button>
               {isOpen && (
                 <div style={{ background: '#f9fafb', padding: 20, borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                  {proposal.status !== 'approved' && (
-                    <Button variant="primary" onClick={() => onApprove(proposal.id)}>
-                      Approve Proposal
-                    </Button>
-                  )}
+                  <span style={{ color: '#6b7280', fontSize: 13 }}>
+                    Review only; approvals are no longer managed here.
+                  </span>
                 </div>
               )}
             </div>

@@ -12,7 +12,13 @@ export function NewEventModal({ onClose }: NewEventModalProps) {
   })
 
   const categories = ['Tech', 'Corporate', 'Retreat', 'Launch', 'Community', 'Training', 'Strategy', 'Forum']
-  const today = new Date().toISOString().split('T')[0]
+  const today = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -20,6 +26,16 @@ export function NewEventModal({ onClose }: NewEventModalProps) {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target
     setForm((f) => ({ ...f, date: value && value < today ? today : value }))
+  }
+
+  const handleDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      return
+    }
+
+    if (e.key.length === 1 && !/\d|-/.test(e.key)) {
+      e.preventDefault()
+    }
   }
 
   return (
@@ -32,7 +48,13 @@ export function NewEventModal({ onClose }: NewEventModalProps) {
           <Input value={form.location} onChange={set('location')} placeholder="Venue, City" />
         </Field>
         <Field label="Date">
-          <Input type="date" value={form.date} onChange={handleDateChange} min={today} />
+          <Input
+            type="date"
+            value={form.date}
+            onChange={handleDateChange}
+            onKeyDown={handleDateKeyDown}
+            min={today}
+          />
         </Field>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

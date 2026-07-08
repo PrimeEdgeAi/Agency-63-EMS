@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getEventsData, getPayRequestsData, subscribeData, addPayRequest, submitPayRequestWorkflow } from '../../data'
 import { logAuditEvent } from '../../lib/audit'
 import { StatusBadge, Card, PageHeader, FilterPills, Button, Modal, Field, Input, Textarea, Select } from '../ui'
+import { SectionTitle, StatCard } from '../common/PageSections'
 
 const FILTER_OPTIONS = ['all', 'pending', 'approved', 'review', 'rejected']
 
@@ -98,28 +99,13 @@ export function PayRequestPage() {
         </div>
       )}
 
-      {/* Summary KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 32 }}>
         {summary.map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: s.bg,
-              border: '1px solid #f0f0f0',
-              borderRadius: 14,
-              padding: '20px 22px',
-            }}
-          >
-            <div style={{ fontSize: 26, fontWeight: 700, color: s.color, letterSpacing: -1, marginBottom: 4 }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize: 11, color: '#aaa', letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>
-              {s.label}
-            </div>
-          </div>
+          <StatCard key={s.label} label={s.label} value={s.value} accent={s.color} background={s.bg} />
         ))}
       </div>
 
+      <SectionTitle title="Request Filters" subtitle="Use the filters to focus the pay request list" />
       <FilterPills options={FILTER_OPTIONS} active={filter} onChange={setFilter} />
 
       <Card>

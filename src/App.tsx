@@ -14,7 +14,7 @@ import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 import AdminDashboard from './admin/AdminDashboard'
-import ManagerDashboard from './manager/ManagerDashboard'
+import ManagerDashboard from './agents/ManagerDashboard'
 import FinanceDashboard from './finance/FinanceDashboard'
 import { logAuditEvent } from './lib/audit'
 
