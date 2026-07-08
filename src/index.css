@@ -20,6 +20,14 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+@keyframes btlPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.btl-pulse { animation: btlPulse 1.2s ease-in-out infinite; }
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease both;
   margin: 0;

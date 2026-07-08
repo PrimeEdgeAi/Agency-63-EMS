@@ -1,0 +1,319 @@
+{
+  "name": "Recce",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reccee-assessment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "f1de665d-ac6d-41eb-810f-9e67ec925374",
+      "name": "Reccee Assessment Webhook",
+      "webhookId": "reccee-assessment-webhook-001"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Reccee submitted successfully.', job_id: $('Reccee Assessment Webhook').item.json.body.job_id, submitted_at: $now.toISO() }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        0
+      ],
+      "id": "cf3feba7-ecbc-4842-b85a-8e8a2faba630",
+      "name": "Respond \u2014 Success"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Reccee Assessment Webhook').item.json.body.email }}",
+        "subject": "=Reccee Submitted Successfully \u2014 {{ $('Reccee Assessment Webhook').item.json.body.description }}",
+        "emailType": "text",
+        "message": "=Hi {{ $('Reccee Assessment Webhook').item.json.body.project_lead_name || $('Reccee Assessment Webhook').item.json.body.email }},\n\nYour Reccee for {{ $('Reccee Assessment Webhook').item.json.body.description }} has been submitted successfully.\n\nDetails:\n- Job ID: {{ $('Reccee Assessment Webhook').item.json.body.job_id }}\n- Client: {{ $('Reccee Assessment Webhook').item.json.body.client }}\n- Venue: {{ $('Reccee Assessment Webhook').item.json.body.location }}\n- Reccee Date: {{ $('Reccee Assessment Webhook').item.json.body.reccee_date }}\n\nThe PrimeEdgeAI team will review the report and follow up within 72 hours.\n\nKind Regards\nPrimeEdgeAI\n{{ $today.format('dd-MMM-yyyy') }}",
+        "options": {
+          "senderName": "PrimeEdgeAI"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        0
+      ],
+      "id": "3922012e-01de-42d6-bb8d-b82b753a8c1d",
+      "name": "Send Confirmation to Manager",
+      "webhookId": "4291b70c-b591-4fb5-a79f-3a94888ccc4b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 22792630,
+          "mode": "list",
+          "cachedResultName": "Reccee",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=22792630"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email ": "={{ $json.body.email }}",
+            " Submitted At": "={{ $now }}",
+            "Description": "={{ $json.body.description }}",
+            "Job_ID": "={{ $json.body.job_id }}",
+            "Client": "={{ $json.body.client }}",
+            "Project Manager": "={{ $json.body.project_lead_name }}",
+            "recce_date": "={{ $json.body.reccee_date }}",
+            "Location": "={{ $json.body.location }}",
+            "Attendees": "={{ $json.body.attendees }}",
+            "Challenges and recomendations": "={{ $json.body.challenges }}",
+            "Permits needed": "={{ $json.body.permits }}",
+            "Quick notes": "=How many minutes is the venue from the main town? {{ $json.body.distance_from_town }} Is Public transport available? {{ $json.body.public_transport }} Are there any residential settlements near the venue? {{ $json.body.residential_nearby }}Does the venue have a well-secured perimeter wall?  {{ $json.body.perimeter_wall }}Is there a police station nearby? {{ $json.body.police_nearby }} Will additional security be needed? {{ $json.body.extra_security }}Are there Medical facilities within 30 minutes radius? {{ $json.body.medical_nearby }} The Event venue has adequate:{{ $json.body.amenities }}",
+            "More details on the Medical Facilities": "={{ $json.body.medical_notes }}",
+            "More Details on the Security": "={{ $json.body.security_notes }}",
+            "Other important informations": "={{ $json.body.other_facilities }}\n{{ $json.body.entry_exit }}\n{{ $json.body.event_layout }}"
+          },
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email ",
+              "displayName": "Email ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Submitted At",
+              "displayName": " Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Manager",
+              "displayName": "Project Manager",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recce_date",
+              "displayName": "recce_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Attendees",
+              "displayName": "Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quick notes",
+              "displayName": "Quick notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "More Details on the Security",
+              "displayName": "More Details on the Security",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "More details on the Medical Facilities",
+              "displayName": "More details on the Medical Facilities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Challenges and recomendations",
+              "displayName": "Challenges and recomendations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Permits needed",
+              "displayName": "Permits needed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Other important informations",
+              "displayName": "Other important informations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        0
+      ],
+      "id": "d9971864-2341-4a0c-97b5-1bb88327a09e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Reccee Assessment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation to Manager": {
+      "main": [
+        [
+          {
+            "node": "Respond \u2014 Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

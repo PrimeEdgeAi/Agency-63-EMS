@@ -1,0 +1,1164 @@
+{
+  "name": "PrimeEdgeAi",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7d7ed205-319f-4ee2-bac6-538026d8102a",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        912
+      ],
+      "id": "88896e5e-1482-42c4-b2e6-267f0bec9b29",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Event Registration').item.json.Email }}",
+        "subject": "=Event Declined: {{ $('Event Registration').item.json.Description }}",
+        "emailType": "text",
+        "message": "=Hi {{ $('Event Registration').item.json['Project Manager Assigned'] }}\n\nThank you for subbimiting the New Job Card,\nWe appreciate your Patience, Kindly note that unfortunately the application was not succesfull.\n\nKind Regards\nPrimeEdgeAi \n{{ $today.format('dd-MMM-yyyy') }}",
+        "options": {
+          "senderName": "PrimeEdgeAi"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        1104
+      ],
+      "id": "a51f6b19-2ff2-45e3-ba51-ca21838d21af",
+      "name": "Send a message2",
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job_ID": "={{ $('Event Registration').item.json.Client }} -{{ $('Event Registration').item.json.Description }} {{ $('Event Registration').item.json['Start Date'] }} to {{ $('Event Registration').item.json['End Date'] }} ",
+            "Client": "={{ $('Event Registration').item.json.Client }}",
+            "Status": "={{ $('Event Registration').item.json['Status: Select a single value only'][0] }}",
+            "Project Lead": "={{ $('Event Registration').item.json['Agency Lead'] }}",
+            "Email": "={{ $('Event Registration').item.json.Email }}",
+            "Start Date": "={{ $('Event Registration').item.json['Start Date'] }}",
+            "End Date": "={{ $('Event Registration').item.json['End Date'] }}",
+            "Where": "={{ $('Event Registration').item.json['Event Location'] }}",
+            "Description": "={{ $('Event Registration').item.json.Description }}",
+            "Client Lead": "={{ $('Event Registration').item.json['Client Lead'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client Lead",
+              "displayName": "Client Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Project Lead",
+              "displayName": "Project Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Where",
+              "displayName": "Where",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "End Date",
+              "displayName": "End Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        912
+      ],
+      "id": "1c9a5e21-15a8-4ee5-8592-96e044da35b5",
+      "name": "Events Google Forms"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Event Registration').item.json.Email }}",
+        "subject": "=Event Approved:{{ $json.description }}",
+        "emailType": "text",
+        "message": "=Hi  {{ $('Event Registration').item.json['Agency Lead'] }}\nThank you for Your patience, Kindly note that the event has been approved please proceed with the Reccee.\n\nKindly proceed with the Reccee\nhttps://techkev.app.n8n.cloud/form/Reccee\n\nKind Regards\nPrimeEdgeAi \n{{ $today.format('dd-MMM-yyyy') }}",
+        "options": {
+          "senderName": "PrimeEdgeAi"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        720
+      ],
+      "id": "a9f30297-281d-447b-a806-9827a95994be",
+      "name": "Send a message3",
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "kmongare4@gmail.com",
+        "subject": "=New Event Created: {{ $json.Description }}  - {{ $json['Client Lead'] }}",
+        "message": "=Hi \n\nKindly confirm Approval of a new Event from dates  {{ $json['Start Date'] }} to {{ $json['End Date'] }} At {{ $json['Event Location'] }} Organized by {{ $json['Client Lead'] }}-{{ $json.Client }}.\n\nKind Regards\nPrimeEdgeAi\n{{ $now.format('dd MM yyyy') }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        912
+      ],
+      "id": "631aa5f1-4ea7-483d-be20-fb43a21d9b9a",
+      "name": "Send message and wait for response",
+      "webhookId": "d1155d31-4afd-4183-8c01-73a14ab7f3b1"
+    },
+    {
+      "parameters": {
+        "formTitle": "Submit Your Reccee",
+        "formDescription": "Please fill out the form below and upload at-least 4 pictures.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Client",
+              "placeholder": "e.g., Jumia",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Status: Select a single value only",
+              "fieldType": "dropdown",
+              "defaultValue": "Event Creation",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Event Creation"
+                  },
+                  {
+                    "option": "Event update"
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Description",
+              "placeholder": "I.e KCB VS Police FC",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Client Lead",
+              "placeholder": "Name:"
+            },
+            {
+              "fieldLabel": "Agency Lead",
+              "placeholder": "Name :",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "placeholder": "e.g John@gmail.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Event Location",
+              "placeholder": "Where is the Reccee?",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Start Date",
+              "fieldType": "date",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "End Date",
+              "fieldType": "date",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Submit Application",
+          "path": "00b15c43-e85c-44e5-80ee-c2faf4e33b9c",
+          "customCss": "/* --- ROOT VARIABLES (Dark Professional Theme) --- */\n:root {\n\t/* --- FONT MAPPING --- */\n\t--font-family: 'Inter', sans-serif;\n\t--font-weight-normal: 400;\n\t--font-weight-bold: 600;\n\t--font-size-body: 14px;\n\t--font-size-label: 14px;\n\t--font-size-input: 14px;\n\t--font-size-header: 24px;\n\t--line-height-base: 1.6;\n\n\t/* --- COLOR MAPPING (Dark Slate/Purple Theme) --- */\n\t--color-page-bg: #111827; /* Dark Slate */\n\t--color-card-bg-glass: rgba(29, 39, 53, 0.65); /* Darker, less transparent glass */\n\t--color-card-border-glass: rgba(255, 255, 255, 0.1); /* Subtle light border */\n\t--color-input-bg: #1F2937; /* Slightly lighter than page bg */\n\t--color-header: #F9FAFB; /* Off-white for high contrast */\n\t--color-label: #9CA3AF; /* Light gray for secondary text */\n\t--color-input-text: #F9FAFB;\n\t--color-input-border: #4B5563; /* Mid-gray border */\n\t--color-focus-border: #8B5CF6; /* Vibrant Purple */\n\t--color-link: #8B5CF6;\n\t--color-submit-btn-bg: #8B5CF6;\n\t--color-submit-btn-hover-bg: #7C3AED; /* Darker Purple */\n\t--color-submit-btn-text: #FFFFFF;\n\t--color-error: #F43F5E; /* Vibrant Rose for errors */\n\t--color-required: #F43F5E;\n\n\t/* --- DIMENSIONS & SPACING --- */\n\t--container-width: 550px;\n\t--border-radius-card: 16px;\n\t--border-radius-input: 8px;\n\t--padding-card: 32px;\n\t--padding-form-input: 14px;\n\t--submit-btn-height: 48px;\n\t--checkbox-size: 20px;\n\n\t/* --- EFFECTS & ANIMATIONS --- */\n\t--box-shadow-card: 0 16px 50px rgba(0, 0, 0, 0.3); /* Deeper shadow for dark mode */\n\t--transition-speed: 0.25s;\n\t--animation-speed-fast: 0.2s;\n\t--animation-speed-normal: 0.4s;\n}\n\n/* === KEYFRAME ANIMATIONS === */\n@keyframes fadeInSlideUp {\n    from {\n        opacity: 0;\n        transform: translateY(20px);\n    }\n    to {\n        opacity: 1;\n        transform: translateY(0);\n    }\n}\n\n@keyframes backgroundPan {\n\t0% { background-position: 0% 50%; }\n\t50% { background-position: 100% 50%; }\n\t100% { background-position: 0% 50%; }\n}\n\n/* === GLOBAL LAYOUT & STYLES === */\nbody {\n    /* Dynamic animated aurora gradient background */\n    background-color: var(--color-page-bg);\n    background-image:\n        radial-gradient(at 20% 100%, hsla(278, 60%, 45%, 0.2) 0px, transparent 50%),\n        radial-gradient(at 80% 0%, hsla(215, 60%, 40%, 0.2) 0px, transparent 50%),\n        radial-gradient(at 50% 50%, hsla(259, 70%, 55%, 0.1) 0px, transparent 50%);\n    background-size: 200% 200%;\n    animation: backgroundPan 15s ease-in-out infinite;\n\n    line-height: var(--line-height-base);\n    font-size: var(--font-size-body);\n    color: var(--color-label); /* Set default text color for body */\n\n    /* Flexbox properties for true centering */\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    min-height: 100vh;\n    margin: 0;\n    overflow-x: hidden; /* Prevent horizontal scroll from large gradients */\n}\n\n.form-container {\n    padding: 2rem 1rem;\n}\n\n/* === THE GLASSMORPHISM CARD === */\n.card {\n    background: var(--color-card-bg-glass);\n    backdrop-filter: blur(16px) saturate(150%);\n    -webkit-backdrop-filter: blur(16px) saturate(150%);\n    border-radius: var(--border-radius-card);\n    border: 1px solid var(--color-card-border-glass);\n    box-shadow: var(--box-shadow-card);\n    transition: box-shadow var(--animation-speed-normal) ease;\n\n    /* Card Load-in Animation */\n    animation: fadeInSlideUp 0.6s ease-out forwards;\n}\n.card:hover {\n    box-shadow: 0 0 50px rgba(139, 92, 246, 0.15); /* Subtle purple glow on hover */\n}\n\n/* === FORM ELEMENT STYLING === */\n.form-input {\n    border-radius: var(--border-radius-input);\n    transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;\n    background-color: var(--color-input-bg);\n    border: 1px solid var(--color-input-border);\n    color: var(--color-input-text);\n}\n.form-input::placeholder {\n    color: var(--color-label);\n    opacity: 0.7;\n}\n.form-input:focus {\n    /* Glow effect on focus */\n    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);\n    border-color: var(--color-focus-border);\n    outline: none; /* Remove default outline */\n}\n\ntextarea.form-input {\n    min-height: 150px;\n    resize: vertical;\n}\n\n/* Submit Button */\nbutton.submit-btn {\n    transition: all var(--transition-speed) ease-in-out;\n    font-family: var(--font-family);\n    font-weight: var(--font-weight-bold);\n    color: var(--color-submit-btn-text);\n    background-color: var(--color-submit-btn-bg);\n    border-radius: var(--border-radius-input);\n    border: none;\n    cursor: pointer;\n}\nbutton.submit-btn:hover {\n    background-color: var(--color-submit-btn-hover-bg);\n    /* Add a lift and glow effect on hover */\n    transform: translateY(-3px);\n    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);\n}\n\n/* === MODERN CHECKBOX STYLING === */\nlabel.multiselect-label {\n    display: flex;\n    align-items: center;\n    cursor: pointer;\n    position: relative;\n    padding: 8px 0;\n}\nlabel.multiselect-label span {\n    padding-left: 12px;\n    color: var(--color-label);\n    transition: color var(--transition-speed) ease;\n}\nlabel.multiselect-label:hover span {\n    color: var(--color-input-text); /* Lighten label text on hover */\n}\nlabel.multiselect-label input[type=\"checkbox\"] {\n    position: absolute;\n    opacity: 0;\n    cursor: pointer;\n    height: 0;\n    width: 0;\n}\nlabel.multiselect-label span::before {\n    content: '';\n    position: absolute;\n    left: 0;\n    top: 50%;\n    transform: translateY(-50%);\n    width: var(--checkbox-size);\n    height: var(--checkbox-size);\n    background-color: var(--color-input-bg);\n    border: 1px solid var(--color-input-border);\n    border-radius: 6px;\n    transition: all var(--animation-speed-fast) ease-in-out;\n}\nlabel.multiselect-label input[type=\"checkbox\"]:checked + span::before {\n    background-color: var(--color-focus-border);\n    border-color: var(--color-focus-border);\n    background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e\");\n    background-position: center;\n    background-repeat: no-repeat;\n    /* Animation for the checkmark appearing */\n    transform: translateY(-50%) scale(1.05);\n}\nlabel.multiselect-label input[type=\"checkbox\"]:focus-visible + span::before {\n    /* Use a glow for focus instead of a harsh outline */\n    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);\n}"
+        }
+      },
+      "id": "436c8d6f-25e4-4939-bc73-0c7fb9f1d191",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Event Registration",
+      "type": "n8n-nodes-base.formTrigger",
+      "creator": "Lucas Peyrin",
+      "position": [
+        -288,
+        912
+      ],
+      "webhookId": "00b15c43-e85c-44e5-80ee-c2faf4e33b9c",
+      "typeVersion": 2.2,
+      "notes": "\u00a9 2025 Kevin Mongare"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "8ac1b14510e5a66a3ef5586770ffbe11d6e79d04d441840ee482c7dc4f5ac47b@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "PrimeEdgeAI"
+        },
+        "start": "={{ $('Event Registration').item.json['Start Date'] }}",
+        "end": "={{ $('Event Registration').item.json['End Date'] }}",
+        "additionalFields": {
+          "allday": "yes",
+          "attendees": [
+            "={{ $('Event Registration').item.json.Email }}"
+          ],
+          "color": "1",
+          "description": "={{ $('Event Registration').item.json.Description }} Event Assigned to {{ $('Event Registration').item.json['Agency Lead'] }}",
+          "location": "={{ $('Event Registration').item.json['Event Location'] }}",
+          "summary": "={{ $('Event Registration').item.json.Description }} Event Assigned to {{ $('Event Registration').item.json['Agency Lead'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        720
+      ],
+      "id": "1cae2a18-7822-4424-a8bc-4094f8e56676",
+      "name": "Create an event"
+    },
+    {
+      "parameters": {
+        "formTitle": "Reccee Form",
+        "formDescription": "Reccee ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Client",
+              "placeholder": "KCB",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Project Manger",
+              "placeholder": "Project Manager's Name"
+            },
+            {
+              "fieldLabel": "Description",
+              "placeholder": "Jumia VS KCB"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Submit",
+          "path": "779bf6af-bd3f-4a04-8614-598bbef02511"
+        }
+      },
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1440,
+        208
+      ],
+      "id": "6780c4a2-761a-4151-a9ef-7feada18ee47",
+      "webhookId": "779bf6af-bd3f-4a04-8614-598bbef02511"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Client",
+              "lookupValue": "={{ $json.Client }}"
+            },
+            {
+              "lookupColumn": "Project Lead",
+              "lookupValue": "={{ $json['Project Manger'] }}"
+            },
+            {
+              "lookupColumn": "Description",
+              "lookupValue": "={{ $json.Description }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1200,
+        208
+      ],
+      "id": "b5516323-7a37-479a-a0f2-6d227b6483b2",
+      "name": "Get row(s) in sheet2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Reccee Dates",
+              "fieldType": "date",
+              "defaultValue": "={{ $('Form Trigger').item.json.submittedAt }}"
+            },
+            {
+              "fieldLabel": "Where the Recce will take place?",
+              "defaultValue": "={{ $json.Where }}"
+            },
+            {
+              "fieldLabel": "Time",
+              "fieldType": "textarea",
+              "defaultValue": "={{ $now.format('ff') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -752,
+        144
+      ],
+      "id": "b016c2af-fc3b-4eff-9c35-eac0a42fb630",
+      "name": "Form",
+      "webhookId": "50e5b7ea-2e14-48f3-ba39-d5144f2ace9f"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Date",
+              "fieldType": "date",
+              "defaultValue": "={{ $json['Reccee Dates'] }}"
+            },
+            {
+              "fieldLabel": "Attendees:",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "How many minutes is the venue from the main town?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Atleast 15 min"
+                  },
+                  {
+                    "option": "Atleast 30 min"
+                  },
+                  {
+                    "option": "Atleast 45 min"
+                  },
+                  {
+                    "option": "1 hour and above."
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Is Public transport available?",
+              "fieldType": "radio",
+              "defaultValue": "Yes",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Are there any residential settlements near the venue?",
+              "fieldType": "radio",
+              "defaultValue": "No",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Does the venue have a well-secured perimeter wall?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Is there a police station nearby?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Will additional security be needed?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Share More Details on the security of the Venue ",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Are there Medical facilities within 30 minutes radius?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Share more details on the Medical facilities Available",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Does the Venue have the  following Facilities and Amenities? (You can select more than one)",
+              "fieldType": "checkbox",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Adequate toilets"
+                  },
+                  {
+                    "option": "Water supply"
+                  },
+                  {
+                    "option": "3-phase electricity points"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "What other Facilities are needed?",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Give more details on Event Logistics (Entry and Exit: )",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Give more details on Event Logistics (Event Layout:)",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "What Permits are required?",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Challenges and Recommendations",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -528,
+        112
+      ],
+      "id": "69e72e29-3605-466e-aee1-3433a4fd6469",
+      "name": "Form2",
+      "webhookId": "535876c5-d32b-4322-99fc-f4fe33655510"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 22792630,
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recce_date": "={{ $('Form').item.json['Reccee Dates'] }}",
+            "Client": "={{ $('Form Trigger').item.json.Client }}",
+            "Project Manager": "={{ $('Form Trigger').item.json['Project Manger'] }}",
+            "Submitted At:": "={{ $('Form Trigger').item.json.submittedAt }}",
+            "Description": "={{ $('Form Trigger').item.json.Description }}",
+            "Location": "={{ $('Form').item.json['Where the Recce will take place?'] }}",
+            "Attendees": "={{ $json['Attendees:'] }}",
+            "Challenges and recomendations": "={{ $json['Challenges and Recommendations'] }}",
+            "Quick notes": "=How many minutes is the venue from the main town? {{ $json['How many minutes is the venue from the main town?'] }}\nIs Public transport available? {{ $json['Is Public transport available?'] }}\nAre there any residential settlements near the venue? {{ $json['Are there any residential settlements near the venue?'] }}\nDoes the venue have a well-secured perimeter wall? {{ $json['Does the venue have a well-secured perimeter wall?'] }}\nIs there a police station nearby? {{ $json['Are there any residential settlements near the venue?'] }}\nWill additional security be needed? {{ $json['Will additional security be needed?'] }}\nAre there Medical facilities within 30 minutes radius?{{ $json['Are there Medical facilities within 30 minutes radius?'] }}\n\nThe Event venue has adequate:\n{{ $json['Does the Venue have the  following Facilities and Amenities? (You can select more than one)'][0] }}\n{{ $json['Does the Venue have the  following Facilities and Amenities? (You can select more than one)'][1] }}\n{{ $json['Does the Venue have the  following Facilities and Amenities? (You can select more than one)'][2] }}\n",
+            "More Details on the Security": "={{ $json['Share More Details on the security of the Venue '] }}",
+            "More details on the Medical Facilities": "={{ $json['Share more details on the Medical facilities Available'] }}",
+            "Other important informations": "={{ $json['What other Facilities are needed?'] }}\n\n{{ $json['Give more details on Event Logistics (Entry and Exit: )'] }}\n\n{{ $json['Give more details on Event Logistics (Event Layout:)'] }}\n\n",
+            "Permits needed": "={{ $json['What Permits are required?'] }}",
+            "Job_ID": "={{ $('Get row(s) in sheet2').item.json.Job_ID }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Project Manager",
+              "displayName": "Project Manager",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Submitted At:",
+              "displayName": "Submitted At:",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recce_date",
+              "displayName": "recce_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Attendees",
+              "displayName": "Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Quick notes",
+              "displayName": "Quick notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "More Details on the Security",
+              "displayName": "More Details on the Security",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "More details on the Medical Facilities",
+              "displayName": "More details on the Medical Facilities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Challenges and recomendations",
+              "displayName": "Challenges and recomendations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Permits needed",
+              "displayName": "Permits needed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Other important informations",
+              "displayName": "Other important informations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -304,
+        112
+      ],
+      "id": "baf118e4-095f-455d-ab6f-3577832f385c",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get row(s) in sheet2').item.json.Email }}",
+        "subject": "=Reccee Submitted Succesfully- {{ $('Get row(s) in sheet2').item.json.Description }}",
+        "emailType": "text",
+        "message": "=Hi  {{ $json['Project Manager'] }}\n\nYour Reccee has been submited successfully ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        16
+      ],
+      "id": "0761e548-bf88-46de-abb6-650aabdbd25e",
+      "name": "Send a message5",
+      "webhookId": "ae38617c-977b-46fb-a85b-a1c20dcb7375"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "theafricanpulsepod@gmail.com",
+        "subject": "={{ $json.Client }} Reccee Completed- by {{ $json['Project Manager'] }}",
+        "message": "Hi \nThe Reccee has been completed Check Recee details below\n\nhttps://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?gid=22792630#gid=22792630\n\nShare the proposal within 72 hours or earlier.\n\nKind Regards \nPrimeEdgeAi",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Submit the Proposal in PDF format",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {
+          "messageButtonLabel": "Respond",
+          "responseFormCustomCss": ":root {\n\t--font-family: 'Open Sans', sans-serif;\n\t--font-weight-normal: 400;\n\t--font-weight-bold: 600;\n\t--font-size-body: 12px;\n\t--font-size-label: 14px;\n\t--font-size-test-notice: 12px;\n\t--font-size-input: 14px;\n\t--font-size-header: 20px;\n\t--font-size-paragraph: 14px;\n\t--font-size-link: 12px;\n\t--font-size-error: 12px;\n\t--font-size-html-h1: 28px;\n\t--font-size-html-h2: 20px;\n\t--font-size-html-h3: 16px;\n\t--font-size-html-h4: 14px;\n\t--font-size-html-h5: 12px;\n\t--font-size-html-h6: 10px;\n\t--font-size-subheader: 14px;\n\n\t/* Colors */\n\t--color-background: #000000;\n\t--color-test-notice-text: #e6a23d;\n\t--color-test-notice-bg: #fefaf6;\n\t--color-test-notice-border: #f6dcb7;\n\t--color-card-bg: #ffffff;\n\t--color-card-border: #dbdfe7;\n\t--color-card-shadow: rgba(99, 77, 255, 0.06);\n\t--color-link: #7e8186;\n\t--color-header: #525356;\n\t--color-label: #555555;\n\t--color-input-border: #dbdfe7;\n\t--color-input-text: #71747A;\n\t--color-focus-border: rgb(90, 76, 194);\n\t--color-submit-btn-bg: #ff6d5a;\n\t--color-submit-btn-text: #ffffff;\n\t--color-error: #ea1f30;\n\t--color-required: #ff6d5a;\n\t--color-clear-button-bg: #7e8186;\n\t--color-html-text: #555;\n\t--color-html-link: #ff6d5a;\n\t--color-header-subtext: #7e8186;\n\n\t/* Border Radii */\n\t--border-radius-card: 8px;\n\t--border-radius-input: 6px;\n\t--border-radius-clear-btn: 50%;\n\t--card-border-radius: 8px;\n\n\t/* Spacing */\n\t--padding-container-top: 24px;\n\t--padding-card: 24px;\n\t--padding-test-notice-vertical: 12px;\n\t--padding-test-notice-horizontal: 24px;\n\t--margin-bottom-card: 16px;\n\t--padding-form-input: 12px;\n\t--card-padding: 24px;\n\t--card-margin-bottom: 16px;\n\n\t/* Dimensions */\n\t--container-width: 800px;\n\t--submit-btn-height: 48px;\n\t--checkbox-size: 18px;\n\n\t/* Others */\n\t--box-shadow-card: 0px 4px 16px 0px var(--color-card-shadow);\n\t--opacity-placeholder: 0.5;\n}",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 24
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        208
+      ],
+      "id": "ce981737-fcba-4d94-8ad2-4d5046a0cd2a",
+      "name": "Send message and wait for response1",
+      "webhookId": "08916f43-75d3-4379-ba54-4709e7f54dd3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a127203d-e930-46dc-a9d3-6788c37076ae",
+              "leftValue": "={{ $json.data['Submit the Proposal in PDF format'][0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        208
+      ],
+      "id": "c108bbeb-2c75-46d4-8ec2-704ed5bb4b73",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "65d032fc-ca11-4418-9c28-b9c0614fe076",
+              "leftValue": "={{ $('Form Trigger').item.json.Client }}",
+              "rightValue": "={{ $json.Client }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "b9d010d6-e200-4555-9712-fc4e5592aa42",
+              "leftValue": "={{ $('Form Trigger').item.json['Project Manger'] }}",
+              "rightValue": "={{ $('Form Trigger').item.json['Project Manger'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "1288d682-c93f-4374-ab91-adacfca34304",
+              "leftValue": "={{ $('Form Trigger').item.json.Description }}",
+              "rightValue": "={{ $('Form Trigger').item.json.Description }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Is Completed?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        208
+      ],
+      "id": "951c901f-ccc4-4acd-a017-1673921e96b5"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "8ac1b14510e5a66a3ef5586770ffbe11d6e79d04d441840ee482c7dc4f5ac47b@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "PrimeEdgeAI"
+        },
+        "end": "={{ $now.plus(2, 'hour') }}",
+        "additionalFields": {
+          "attendees": [],
+          "location": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        304
+      ],
+      "id": "7f896a1c-4790-4ea5-b155-b65f0f43ec64",
+      "name": "Create an event1"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Events Google Forms",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Registration": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Is Completed?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form": {
+      "main": [
+        [
+          {
+            "node": "Form2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create an event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form2": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Completed?1": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}

@@ -1,31 +1,79 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FiCheck } from 'react-icons/fi'
+import { submitRecceWorkflow } from '../../../data'
+import { logAuditEvent } from '../../../lib/audit'
 
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
-const RECCE_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/reccee-assessment'
+// ─── Sheet helpers ─────────────────────────────────────────────────────────────
+const RECCEE_DATA_URL = 'https://kenmongare.app.n8n.cloud/webhook/get-sheet-data'
 
-// ─── CSV helpers ─────────────────────────────────────────────────────────────
-function parseCSV(text: string) {
-  const rows: string[][] = []; let row: string[] = [], field = '', inQ = false
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i], nx = text[i + 1]
-    if (inQ) { if (ch === '"' && nx === '"') { field += '"'; i++ } else if (ch === '"') { inQ = false } else { field += ch } }
-    else { if (ch === '"') { inQ = true } else if (ch === ',') { row.push(field.trim()); field = '' } else if (ch === '\n') { row.push(field.trim()); rows.push(row); row = []; field = '' } else if (ch !== '\r') { field += ch } }
+function getRecceDoneValue(job: Record<string, unknown>) {
+  const keys = ['Recce_Done', 'Recce Done', 'Reccee_Done', 'Reccee Done', 'recce_done', 'recceDone']
+  for (const key of keys) {
+    const value = job[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
   }
-  if (field || row.length) { row.push(field.trim()); rows.push(row) }
-  return rows
+  return ''
 }
-function csvToObj(rows: string[][]) {
-  if (rows.length < 2) return []
-  const h = rows[0]
-  return rows.slice(1).filter(r => r.some(c => c)).map(r => { const o: Record<string, string> = {}; h.forEach((k, i) => { o[k.trim()] = (r[i] || '').trim() }); return o })
+
+function getEventDateValue(job: Record<string, unknown>) {
+  const keys = ['Start_Date', 'Start Date', 'Start', 'Date', 'Event Date', 'End_Date', 'End Date', 'End']
+  for (const key of keys) {
+    const value = job[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
 }
-function emailMatch(email: string, row: Record<string, string>) {
-  const n = email.toLowerCase()
-  if ((row['Email'] || '').toLowerCase().split(',').map(e => e.trim()).includes(n)) return true
-  if ((row['Project Assistant Email'] || '').toLowerCase().split(',').map(e => e.trim()).includes(n)) return true
-  return false
+
+function getEventDateTimestamp(value?: string) {
+  if (!value) return Number.POSITIVE_INFINITY
+  const parsed = Date.parse(value)
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed
+}
+
+function getJobText(job: Record<string, unknown> | null | undefined, key: string) {
+  if (!job) return ''
+  const value = job[key]
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return ''
+}
+
+function getPendingJobs(jobs: Job[]) {
+  return jobs
+    .filter((job) => {
+      const status = getRecceDoneValue(job).toLowerCase()
+      return status === '' || status === 'no'
+    })
+    .sort((a, b) => getEventDateTimestamp(getEventDateValue(a)) - getEventDateTimestamp(getEventDateValue(b)))
+}
+
+async function loadSheetEvents() {
+  const response = await fetch(RECCEE_DATA_URL, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not reach the recce data endpoint (${response.status}).`)
+  }
+
+  const data = await response.json()
+  const events = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { events?: unknown }).events)
+      ? (data as { events: unknown[] }).events
+      : Array.isArray((data as { data?: unknown }).data)
+        ? (data as { data: unknown[] }).data
+        : Array.isArray((data as { rows?: unknown }).rows)
+          ? (data as { rows: unknown[] }).rows
+          : []
+
+  if (!Array.isArray(events) || events.length === 0) {
+    throw new Error('No events found from the recce data endpoint.')
+  }
+
+  return events as Record<string, unknown>[]
 }
 
 // ─── Shared input styles ──────────────────────────────────────────────────────
@@ -79,7 +127,7 @@ function StepBar({ current, total }: { current: number; total: number }) {
   )
 }
 
-type Job = Record<string, string>
+type Job = Record<string, unknown>
 
 type Props = { companyName: string; onBack: () => void }
 
@@ -93,6 +141,13 @@ export function RecceForm({ companyName, onBack }: Props) {
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [ref, setRef] = useState('')
+  const today = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
 
   // Step 3 — Venue
   const [recceeDate, setRecceeDate] = useState('')
@@ -124,14 +179,20 @@ export function RecceForm({ companyName, onBack }: Props) {
   async function findJobs() {
     setError(''); setLoading(true)
     try {
-      const res = await fetch(SHEET_CSV_URL)
-      if (!res.ok) throw new Error('Could not reach the jobs sheet.')
-      const all = csvToObj(parseCSV(await res.text()))
-      const matched = all.filter(r => emailMatch(email.toLowerCase(), r))
-      if (!matched.length) throw new Error(`No jobs found for "${email}".`)
-      setJobs(matched); setStep(2)
-    } catch (e: any) { setError(e.message) }
-    finally { setLoading(false) }
+      const all = await loadSheetEvents()
+      const pending = getPendingJobs(all as Job[])
+      setJobs(pending)
+      if (pending[0]) {
+        setSelectedJob(pending[0])
+      } else {
+        setSelectedJob(null)
+      }
+      setStep(2)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Auto-populate email from session and attempt job lookup
@@ -158,7 +219,7 @@ export function RecceForm({ companyName, onBack }: Props) {
     setError(''); setSubmitting(true)
     const payload = {
       email, job_id: selectedJob?.['Job_ID'] || '',
-      client: selectedJob?.['Client'] || '', description: selectedJob?.['Description'] || '',
+      client: selectedJob?.['Client'] || '', description: selectedJob?.['Description'] || '', project_lead_name: selectedJob?.['Project Lead'] || selectedJob?.['Project Manager'] || '',
       reccee_date: recceeDate, location, attendees, distance_from_town: distance,
       public_transport: transport, residential_nearby: residential, perimeter_wall: perimeter,
       police_nearby: police, extra_security: extraSecurity, security_notes: securityNotes,
@@ -167,11 +228,28 @@ export function RecceForm({ companyName, onBack }: Props) {
       permits, challenges, company: companyName, submitted_at: new Date().toISOString()
     }
     try {
-      await fetch(RECCE_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await submitRecceWorkflow(payload)
+      if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
+
+      const jobIdValue = typeof payload.job_id === 'string' ? payload.job_id : ''
+      const clientValue = typeof payload.client === 'string' ? payload.client : ''
+      const entityId = jobIdValue.trim()
+        ? jobIdValue
+        : clientValue.trim()
+          ? clientValue
+          : null
+
+      void logAuditEvent({
+        action: 'submit_recce',
+        entity_type: 'recce',
+        entity_id: entityId,
+        metadata: { client: payload.client, venue: payload.location },
+      })
       setRef('REC-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
-    } catch { setError('Submission failed. Please try again.') }
-    finally { setSubmitting(false) }
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
+    } finally { setSubmitting(false) }
   }
 
   const field = (label: string, required = false, children: React.ReactNode) => (
@@ -219,25 +297,40 @@ export function RecceForm({ companyName, onBack }: Props) {
       {step === 2 && (
         <div>
           {sectionLabel('Select Job to Assess')}
+          {loading && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: '#4b5563', fontWeight: 600 }}>Loading pending events…</span>
+                <span style={{ fontSize: 12, color: '#6b7280' }}>Filtering and sorting by nearest event date</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '100%', background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)', animation: 'recce-loading 1.1s ease-in-out infinite' }} />
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             {jobs.map((job, i) => {
-              const isSelected = selectedJob?.['Job_ID'] === job['Job_ID']
+              const jobId = getJobText(job, 'Job_ID')
+              const description = getJobText(job, 'Description')
+              const client = getJobText(job, 'Client')
+              const where = getJobText(job, 'Where')
+              const isSelected = getJobText(selectedJob, 'Job_ID') === jobId
               return (
                 <div key={i} onClick={() => { setSelectedJob(job); setError(''); setStep(3) }} style={{ padding: '12px 16px', borderRadius: 10, border: `0.5px solid ${isSelected ? '#111' : 'rgba(0,0,0,0.12)'}`, background: isSelected ? '#f8f8f6' : '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: 12, color: '#888', fontFamily: 'monospace', marginBottom: 3 }}>{job['Job_ID']}</div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{job['Description'] || '(no description)'}</div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[job['Client'], job['Where']].filter(Boolean).join(' · ')}</div>
+                    <div style={{ fontSize: 12, color: '#888', fontFamily: 'monospace', marginBottom: 3 }}>{jobId}</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{description || '(no description)'}</div>
+                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{[client, where].filter(Boolean).join(' · ')}</div>
+                    <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4, fontWeight: 500 }}>
+                      {getEventDateValue(job) ? `Event date: ${getEventDateValue(job)}` : 'Date not available'}
+                    </div>
                   </div>
                   {isSelected && <FiCheck size={16} />}
                 </div>
               )
             })}
-            {loading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                <div className="animate-spin-slow" style={{ width: 18, height: 18, border: '3px solid rgba(36,138,253,0.25)', borderTop: '3px solid #248afd', borderRadius: '50%' }} />
-                <div style={{ fontSize: 12, color: '#248afd' }}>Searching jobs…</div>
-              </div>
+            {!loading && jobs.length === 0 && (
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>No pending events are available right now.</div>
             )}
           </div>
           {error && <div style={{ fontSize: 12, color: '#e74c3c', marginBottom: 12 }}>{error}</div>}
@@ -250,7 +343,7 @@ export function RecceForm({ companyName, onBack }: Props) {
         <div>
           {sectionLabel('Venue & Dates')}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {field('Reccee Date', true, <input style={inp} type="date" value={recceeDate} onChange={e => setRecceeDate(e.target.value)} />)}
+            {field('Reccee Date', true, <input style={inp} type="date" value={recceeDate} min={today} onChange={e => setRecceeDate(e.target.value < today ? today : e.target.value)} />)}
             {field('Venue / Location', true, <input style={inp} type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Where will the event take place?" />)}
           </div>
           {field('Reccee Attendees', true, <textarea style={{ ...inp, minHeight: 80, resize: 'vertical' as const }} value={attendees} onChange={e => setAttendees(e.target.value)} placeholder="List all attendees…" />)}
@@ -300,9 +393,9 @@ export function RecceForm({ companyName, onBack }: Props) {
         <div>
           {sectionLabel('Full Assessment Recap')}
           {[
-            { label: 'Job ID', value: selectedJob?.['Job_ID'] },
-            { label: 'Client', value: selectedJob?.['Client'] },
-            { label: 'Description', value: selectedJob?.['Description'] },
+            { label: 'Job ID', value: getJobText(selectedJob, 'Job_ID') },
+            { label: 'Client', value: getJobText(selectedJob, 'Client') },
+            { label: 'Description', value: getJobText(selectedJob, 'Description') },
             { label: 'Reccee Date', value: recceeDate },
             { label: 'Location', value: location },
             { label: 'Attendees', value: attendees },

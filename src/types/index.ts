@@ -15,6 +15,7 @@ export interface AppUser {
 export type PageId =
   | 'dashboard'
   | 'admin'
+  | 'manager'
   | 'UniCorns'
   | 'One Off'
   | 'Alcoholic'
@@ -26,6 +27,7 @@ export type PageId =
   | 'events'
   | 'recce'
   | 'payrequest'
+  | 'finance'
   | 'settings'
   | 'help'
 
@@ -44,6 +46,11 @@ export interface EventItem {
   category: string
   story: string
   image: string
+  job_id?: string
+  projectAssistant?: string
+  projectAssistantEmail?: string
+  projectStatus?: string
+  recceDone?: string
 }
 
 // ─── Recce ───────────────────────────────────────────────────────────────────
@@ -58,6 +65,7 @@ export interface RecceItem {
   date: string
   status: RecceStatus
   notes: string
+  job_id?: string
 }
 
 // ─── Pay Requests ─────────────────────────────────────────────────────────────
@@ -72,4 +80,26 @@ export interface PayRequest {
   status: PayStatus
   date: string
   category: string
+  paymentMethod?: 'cash' | 'cheque'
+  transactionId?: string
+}
+
+export interface RequisitionItem {
+  id: string
+  company: string
+  jobId: string
+  client: string
+  eventDescription: string
+  requestorName: string
+  requestorEmail: string
+  dateRequired: string
+  lineItems: Array<{ description: string; supplier: string; category: string; qty: number; days: number; unitCost: number; total: number }>
+  totalAmount: number
+  justification: string
+  notes: string
+  urgency: string
+  status: 'pending' | 'approved' | 'rejected'
+  paymentMethod?: 'cash' | 'cheque'
+  transactionId?: string
+  submittedAt: string
 }

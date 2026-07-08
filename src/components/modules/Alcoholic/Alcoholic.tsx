@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { FiCalendar, FiMapPin, FiClipboard, FiFileText, FiCheckCircle, FiBriefcase, FiArrowLeft } from 'react-icons/fi'
-import ModuleData from './type'
+import ModuleData from './types'
 import { ModuleActionGrid } from '../ModuleActionGrid'
 
 const ACTIONS = [
   { id: 'events', label: 'Events', icon: <FiCalendar />, description: 'Plan and manage event schedules' },
   { id: 'recce', label: 'Recce', icon: <FiMapPin />, description: 'Track venue surveys and inspections' },
-  { id: 'requisitions', label: 'Requisitions', icon: <FiClipboard />, description: 'Request supplies and approvals' },
   { id: 'proposals', label: 'Proposals', icon: <FiFileText />, description: 'Create and review proposals' },
+  { id: 'requisitions', label: 'Requisitions', icon: <FiClipboard />, description: 'Request supplies and approvals' },
   { id: 'completed', label: 'Completed', icon: <FiCheckCircle />, description: 'Review finished activities' },
   { id: 'jobs', label: 'Jobs', icon: <FiBriefcase />, description: 'Manage assignments and staffing' },
 ]

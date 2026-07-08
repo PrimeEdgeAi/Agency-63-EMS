@@ -14,12 +14,34 @@ import { HelpPage } from './components/help/HelpPage'
 import { Alcoholic } from './components/modules/Alcoholic/Alcoholic'
 import { NonAlcoholic } from './components/modules/NonAlcoholic/NonAlcoholic'
 import AdminDashboard from './admin/AdminDashboard'
+import ManagerDashboard from './agents/ManagerDashboard'
+import FinanceDashboard from './finance/FinanceDashboard'
+import { logAuditEvent } from './lib/audit'
 
 const ALLOWED_EMAILS = [
   "kmongare4@gmail.com",
   "ericmunene1410@gmail.com",
-  "kevin.n.mongare@gmail.com"
+  "kevin.n.mongare@gmail.com",
+  "theafricanpulsepod@gmail.com",
+  "kennedymongaremirambo@gmail.com",
+  "primeedgeaiofficial@gmail.com",
 ]
+
+const MANAGER_EMAILS = [
+  "primeedgeaiofficial@gmail.com",
+  "theafricanpulsepod@gmail.com",
+]
+
+const FINANCE_EMAILS = [
+  "kennedymongaremirambo@gmail.com",
+  "emunene924@gmail.com",
+]
+
+const APPROVED_EMAILS = Array.from(new Set([
+  ...ALLOWED_EMAILS,
+  ...MANAGER_EMAILS,
+  ...FINANCE_EMAILS,
+]))
 
 // 🔥 NEW: admin access error state message
 const ADMIN_ERROR_MESSAGE =
@@ -44,7 +66,7 @@ export default function App() {
             const email = sessionUser.email ?? ""
 
             // 🔐 BLOCK UNAUTHORIZED USERS
-            if (!ALLOWED_EMAILS.includes(email)) {
+            if (!APPROVED_EMAILS.includes(email)) {
               await supabase.auth.signOut()
               setUser(null)
 
@@ -60,10 +82,20 @@ export default function App() {
               email
             }
 
+            void logAuditEvent({
+              action: 'login',
+              entity_type: 'user',
+              entity_id: email,
+              user_email: email,
+              metadata: { source: 'auth_init' },
+            })
+
             setUser(appUser)
 
-            // If this is the admin email, open admin dashboard by default
+            // If this is the admin or manager email, open the proper dashboard by default
             if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
+            else if (MANAGER_EMAILS.includes(email)) setActive('manager')
+            else if (FINANCE_EMAILS.includes(email)) setActive('finance')
           } else {
             setUser(null)
           }
@@ -84,7 +116,7 @@ export default function App() {
           const email = session.user.email ?? ""
 
           // 🔐 BLOCK UNAUTHORIZED USERS
-          if (!ALLOWED_EMAILS.includes(email)) {
+          if (!APPROVED_EMAILS.includes(email)) {
             await supabase.auth.signOut()
             setUser(null)
 
@@ -98,9 +130,19 @@ export default function App() {
             email
           }
 
+          void logAuditEvent({
+            action: 'login',
+            entity_type: 'user',
+            entity_id: email,
+            user_email: email,
+            metadata: { source: 'auth_state_change' },
+          })
+
           setUser(appUser)
 
           if (email === 'kevin.n.mongare@gmail.com') setActive('admin')
+          else if (MANAGER_EMAILS.includes(email)) setActive('manager')
+          else if (FINANCE_EMAILS.includes(email)) setActive('finance')
         } else {
           setUser(null)
         }
@@ -113,7 +155,14 @@ export default function App() {
   }, [])
 
   const handleLogout = async () => {
+    const currentEmail = user?.email
     await supabase.auth.signOut()
+    void logAuditEvent({
+      action: 'logout',
+      entity_type: 'user',
+      entity_id: currentEmail ?? null,
+      user_email: currentEmail ?? null,
+    })
     setUser(null)
     setActive('dashboard')
 
@@ -150,6 +199,11 @@ export default function App() {
 
   if (!user) return <LoginPage onLogin={setUser} />
 
+  // Admin, manager and finance dashboards have their own layout, don't show the regular sidebar for them
+  if (active === 'admin' || active === 'manager' || active === 'finance') {
+    return <PageRouter active={active} setActive={setActive} user={user} onLogout={handleLogout} />
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={handleLogout} />
@@ -165,13 +219,16 @@ export default function App() {
   )
 }
 
-function PageRouter({ active, setActive, user }: any) {
+function PageRouter({ active, setActive, user, onLogout }: any) {
   switch (active) {
     case 'dashboard': return <Dashboard user={user} setActive={setActive} />
-    case 'admin': return <AdminDashboard />
+    case 'admin': return <AdminDashboard onLogout={onLogout} />
+    case 'manager': return <ManagerDashboard onLogout={onLogout} />
+    case 'finance': return <FinanceDashboard user={user} onLogout={onLogout} />
     case 'events': return <EventsPage />
     case 'recce': return <ReccePage />
     case 'payrequest': return <PayRequestPage />
+    case 'Pay Requests': return <PayRequestPage />
     case 'settings': return <SettingsPage user={user} />
     case 'help': return <HelpPage />
     case 'NonAlcoholic': return <NonAlcoholic />

@@ -1,22 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { EventItem } from '../../types'
-import { EVENTS_DATA } from '../../data'
+import { getEventsData, subscribeData } from '../../data'
 import { StatusBadge, Card, PageHeader, FilterPills, Button } from '../ui'
 import { EventDetail } from './EventDetail'
 import { NewEventModal } from './NewEventModal'
+import { SectionTitle } from '../common/PageSections'
 
 type ViewMode = 'grid' | 'list'
 
 const FILTER_OPTIONS = ['all', 'upcoming', 'planning', 'completed']
 
 export function EventsPage() {
-  const [view,      setView]      = useState<ViewMode>('grid')
-  const [filter,    setFilter]    = useState('all')
-  const [selected,  setSelected]  = useState<EventItem | null>(null)
-  const [showForm,  setShowForm]  = useState(true)
+  const [view, setView] = useState<ViewMode>('grid')
+  const [filter, setFilter] = useState('all')
+  const [selected, setSelected] = useState<EventItem | null>(null)
+  const [showForm, setShowForm] = useState(true)
+  const [events, setEvents] = useState(() => getEventsData())
 
-  const filtered =
-    filter === 'all' ? EVENTS_DATA : EVENTS_DATA.filter((e) => e.status === filter)
+  useEffect(() => subscribeData(() => setEvents(getEventsData())), [])
+
+  const filtered = filter === 'all' ? events : events.filter((e) => e.status === filter)
 
   if (selected) {
     return <EventDetail event={selected} onBack={() => setSelected(null)} />
@@ -25,7 +28,6 @@ export function EventsPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader section="Business Modules" title="Events">
-        {/* View Toggle */}
         <div style={{ display: 'flex', background: 'white', border: '1px solid #e5e5e5', borderRadius: 10, overflow: 'hidden' }}>
           {(['grid', 'list'] as ViewMode[]).map((v) => (
             <button
@@ -49,7 +51,6 @@ export function EventsPage() {
         <Button onClick={() => setShowForm(true)}>+ New Event</Button>
       </PageHeader>
 
-      {/* Filters + count */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <FilterPills options={FILTER_OPTIONS} active={filter} onChange={setFilter} />
         <span style={{ marginLeft: 'auto', fontSize: 12, color: '#ccc' }}>
@@ -57,7 +58,7 @@ export function EventsPage() {
         </span>
       </div>
 
-      {/* Grid */}
+      <SectionTitle title="Event List" subtitle={`${filtered.length} event${filtered.length !== 1 ? 's' : ''} available`} />
       {view === 'grid' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
           {filtered.map((ev) => (

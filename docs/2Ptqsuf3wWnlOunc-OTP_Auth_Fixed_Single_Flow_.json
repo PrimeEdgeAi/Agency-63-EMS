@@ -1,0 +1,353 @@
+{
+  "name": "OTP Auth (Fixed Single Flow)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "otp-auth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "253e3502-2844-43a2-a1e3-7b1fac3d6f29",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -1120,
+        240
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "073606d5-4a9e-45de-8e93-6a9d6a5f0361"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1657183404,
+          "mode": "list",
+          "cachedResultName": "Roles",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=1657183404"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email",
+              "lookupValue": "={{ $json.body.email }}"
+            }
+          ]
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "id": "9ec03798-4972-49fb-92e5-84730940a342",
+      "name": "Get row(s)",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -688,
+        112
+      ],
+      "typeVersion": 4.7,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const inputEmail = $node[\"Webhook\"].json[\"email\"];\nconst rows = items.map(i => i.json);\nconst match = rows.find(r => r.email && r.email.toLowerCase() === inputEmail.toLowerCase());\nif (!match) return [{ json: { found:false } }];\nreturn [{ json: { found:true, email:match.email, role:match.role } }];"
+      },
+      "id": "6a2ec6c1-1e98-4089-8ff6-08717065f0e8",
+      "name": "Filter Email",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -496,
+        112
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.found}}",
+              "operation": "isTrue"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5468c728-7c75-41b1-8cb6-8a160dba7504",
+      "name": "Email Found?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -288,
+        112
+      ],
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "functionCode": "const otp = Math.floor(100000 + Math.random() * 900000);\nreturn [{ json: { email:$json.email, role:$json.role, otp } }];"
+      },
+      "id": "81f31198-9da3-4d3c-b500-1b74817e3918",
+      "name": "Generate OTP",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -96,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = this.getWorkflowStaticData('global');\ndata[$json.email] = { otp:$json.otp, role:$json.role, expires:Date.now()+5*60*1000 };\nreturn items;"
+      },
+      "id": "6ec57928-ba3a-488b-9737-9782ac4c4f72",
+      "name": "Store OTP",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        112,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "const jwt = require('jsonwebtoken');\nconst SECRET = \"your_super_secret_key\";\n\nconst data = this.getWorkflowStaticData('global');\nconst record = data[$json.email];\n\nif (!record) return [{ json:{ success:false, message:\"No OTP\" }}];\nif (Date.now() > record.expires) return [{ json:{ success:false, message:\"Expired\" }}];\nif (record.otp != $json.otp) return [{ json:{ success:false, message:\"Invalid\" }}];\n\nconst token = jwt.sign({ email:$json.email, role:record.role }, SECRET, { expiresIn:\"1h\" });\n\nlet redirect = \"/agent.html\";\nif (record.role === \"admin\") redirect = \"/admin.html\";\nif (record.role === \"super_admin\") redirect = \"/superadmin.html\";\n\nreturn [{ json:{ success:true, token, role:record.role, redirect }}];"
+      },
+      "id": "027ad31d-9598-433f-af10-3d8dd121e6c4",
+      "name": "Verify OTP",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -688,
+        400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ac1c60d3-7ea4-4bba-a59f-e8ca9701bad1",
+      "name": "OTP Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        512,
+        0
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bc49b4f6-1cad-40f1-a733-0de2b64bd304",
+      "name": "Fail Request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        -96,
+        208
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "82ded9bb-149c-4427-8139-b266aae0fa36",
+      "name": "Respond Verify",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        -496,
+        400
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "equal",
+              "value2": "request"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c071c2-fb79-4067-a3ef-e5fe91efdb4c",
+      "name": "Is Request?2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get row(s)').item.json.Email }}",
+        "subject": "Login OTP",
+        "message": "=Your OTP code is  {{ $json.otp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        0
+      ],
+      "id": "b3a60c70-c8fb-4052-a46e-a3825fc79a95",
+      "name": "Send a message",
+      "webhookId": "be4d77c9-339d-4ad4-92ba-5ed46d36a1b2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Request?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Filter Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Email": {
+      "main": [
+        [
+          {
+            "node": "Email Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Found?": {
+      "main": [
+        [
+          {
+            "node": "Generate OTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fail Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate OTP": {
+      "main": [
+        [
+          {
+            "node": "Store OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store OTP": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify OTP": {
+      "main": [
+        [
+          {
+            "node": "Respond Verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Request?2": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Verify OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "OTP Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "global": {
+      "undefined": {
+        "otp": 820525,
+        "expires": 1776163917264
+      }
+    }
+  },
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

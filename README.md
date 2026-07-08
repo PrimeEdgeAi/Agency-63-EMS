@@ -1,84 +1,58 @@
-# React + TypeScript + Vite
+# Agency-63-EMS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Agency-63-EMS is a React + TypeScript portal for managing event submissions, approvals, recce checks, finance requests, and role-based dashboards.
 
-Currently, two official plugins are available:
+## Tech stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- TypeScript
+- Vite
+- Supabase for authentication and storage-backed workflows
+- GH Pages for deployment
 
-## React Compiler
+## Project skeleton
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- src/App.tsx: application shell, auth gate, routing, and role-based dashboard switching
+- src/components/: UI sections split by feature
+  - auth/: login experience
+  - dashboard/: overview screen
+  - events/: event listing and creation flow
+  - finance/: pay request screens
+  - recce/: site inspection flow
+  - settings/: user settings
+  - help/: support/help area
+  - layout/: shared sidebar and navigation
+  - modules/: reusable module-driven experience for Alcoholic and Non-Alcoholic flows
+  - ui/: shared input, button, card, modal, and layout building blocks
+- src/data/: data access and workflow helpers for events, recce, pay requests, and approvals
+- src/lib/: shared utilities such as Supabase access and audit logging
+- src/types/: shared application types
+- src/admin/, src/manager/, src/finance/: feature-specific dashboard areas for different roles
+- public/: static assets such as logos and images
 
-## Expanding the ESLint configuration
+## Folder conventions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Keep feature screens under src/components/<feature>/
+- Keep reusable forms under src/components/modules/forms/
+- Keep module-specific mock content and metadata under src/components/modules/<Module>/types/
+- Keep shared UI primitives in src/components/ui/
+- Keep app-wide types in src/types/
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Local development
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build and deploy
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run deploy
 ```
 
-## Sidebar implementation notes
+## Notes
 
-- `src/components/layout/Sidebar.tsx` has been rebuilt to match the sidebar structure and dark theme of the shared design.
-- The navigation list is currently static in `NAV`, but this should be replaced with backend/API data when the menu is available.
-- User metadata such as `user.user_metadata.full_name` and `user.email` are displayed here and should remain synced to your authentication/profile API.
-- The search box is placeholder UI now; connect it to a backend search endpoint such as `/api/search` when ready.
-- Keep `src/App.tsx` margin-left aligned with the sidebar width (`280px`) so page content does not overlap.
-
-# Agency-63-EMS
-# Agency-63-EMS
+- The app uses a role-based entry model. Admin, manager, and finance users are routed to dedicated dashboards.
+- Module-based screens are organized around reusable forms and shared components so new workflows can be added without scattering logic.

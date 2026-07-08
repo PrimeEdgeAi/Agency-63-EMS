@@ -10,4 +10,7 @@ export default defineConfig({
     
   ],
    base: '/Agency-63-EMS/',
+   build: {
+    chunkSizeWarningLimit: 1000, // silences the warning, quick fix
+  },
 })

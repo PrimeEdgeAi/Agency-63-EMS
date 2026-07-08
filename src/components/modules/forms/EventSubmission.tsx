@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi'
-
-const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/your-webhook-id' // 🔗 Replace with your n8n URL
+import { FiArrowLeft } from 'react-icons/fi'
+import { submitEventWorkflow, generateEventJobId } from '../../../data'
+import { logAuditEvent } from '../../../lib/audit'
 
 const STATUS_OPTIONS = [
   'Project Creation',
@@ -33,8 +33,6 @@ const sectionTitle = (text: string) => (
   </div>
 )
 
-type Assistant = { name: string; email: string }
-
 type Props = {
   companyName: string
   onBack: () => void
@@ -47,48 +45,66 @@ export function EventSubmission({ companyName, onBack }: Props) {
   const [clientLead, setClientLead] = useState('')
   const [projectLead, setProjectLead] = useState('')
   const [email, setEmail] = useState('')
-  const [assistants, setAssistants] = useState<Assistant[]>([])
+  const [projectAssistant, setProjectAssistant] = useState('')
+  const [projectAssistantEmail, setProjectAssistantEmail] = useState('')
   const [location, setLocation] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [generatedJobId, setGeneratedJobId] = useState('')
+  const [jobId, setJobId] = useState('')
   const [error, setError] = useState('')
-
-  const addAssistant = () => setAssistants((prev) => [...prev, { name: '', email: '' }])
-  const removeAssistant = (i: number) => setAssistants((prev) => prev.filter((_, idx) => idx !== i))
-  const updateAssistant = (i: number, field: keyof Assistant, value: string) =>
-    setAssistants((prev) => prev.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)))
+  const today = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
 
   const handleSubmit = async () => {
-    if (!client || !status || !description || !clientLead || !projectLead || !email || !location || !startDate || !endDate) {
+    if (!client || !status || !description || !clientLead || !projectLead || !email || !projectAssistant || !projectAssistantEmail || !location || !startDate || !endDate) {
       setError('Please fill in all required fields.')
       return
     }
     setError('')
     setSubmitting(true)
     try {
-      await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          company: companyName,
+      const result = await submitEventWorkflow({
+        job_id: jobId || undefined,
+        description,
+        client,
+        status,
+        client_lead: clientLead,
+        project_lead: projectLead,
+        email,
+        project_assistant: projectAssistant,
+        project_assistant_email: projectAssistantEmail,
+        where: location,
+        start_date: startDate,
+        end_date: endDate,
+        recce_done: 'No',
+        submitted_at: new Date().toISOString(),
+      })
+      if (!result.ok) throw new Error(result.error || 'Submission failed')
+      if (result.jobId) {
+        setGeneratedJobId(result.jobId)
+      }
+
+      void logAuditEvent({
+        action: 'submit_event',
+        entity_type: 'event',
+        entity_id: result.jobId || client || null,
+        metadata: {
           client,
-          status,
-          description,
-          clientLead,
-          projectLead,
-          email,
-          assistants,
-          location,
-          startDate,
-          endDate,
-          submittedAt: new Date().toISOString(),
-        }),
+          job_id: result.jobId,
+          company: companyName,
+        },
       })
       setSubmitted(true)
-    } catch {
-      setError('Submission failed. Please try again.')
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -106,6 +122,13 @@ export function EventSubmission({ companyName, onBack }: Props) {
       }
     }
     init()
+    // generate a non-editable job id for the form and reserve it
+    try {
+      const id = generateEventJobId()
+      setJobId(id)
+    } catch (e) {
+      // ignore generation failure; submit will still create one server-side
+    }
   }, [])
 
   // ── Success state ──
@@ -114,9 +137,12 @@ export function EventSubmission({ companyName, onBack }: Props) {
       <div className="p-6 bg-white rounded-lg shadow-md" style={{ textAlign: 'center', padding: '3rem' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 16, fontWeight: 600, color: '#111', marginBottom: 6 }}>Event submitted</div>
-        <div style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Your event has been sent for approval.</div>
+        <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>Your event has been sent for approval.</div>
+        {generatedJobId && (
+          <div style={{ fontSize: 13, color: '#555', marginBottom: 24 }}>Job ID: <strong>{generatedJobId}</strong></div>
+        )}
         <button
-          onClick={() => { setSubmitted(false); setClient(''); setStatus(''); setDescription(''); setClientLead(''); setProjectLead(''); setEmail(''); setAssistants([]); setLocation(''); setStartDate(''); setEndDate(''); }}
+          onClick={() => { setSubmitted(false); setClient(''); setStatus(''); setDescription(''); setClientLead(''); setProjectLead(''); setEmail(''); setProjectAssistant(''); setProjectAssistantEmail(''); setLocation(''); setStartDate(''); setEndDate(''); }}
           style={{ fontSize: 13, padding: '8px 20px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', color: '#333', cursor: 'pointer', marginRight: 8 }}
         >
           Submit another
@@ -161,6 +187,10 @@ export function EventSubmission({ companyName, onBack }: Props) {
           {sectionTitle('Event Info')}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
+              {label('Job ID')}
+              <input style={{ ...input, opacity: 0.85, background: '#f6f6f6' }} readOnly value={jobId || ''} />
+            </div>
+            <div>
               {label('Client', true)}
               <input style={input} placeholder="e.g. Jumia" value={client} onChange={(e) => setClient(e.target.value)} />
             </div>
@@ -202,29 +232,19 @@ export function EventSubmission({ companyName, onBack }: Props) {
           </div>
         </section>
 
-        {/* PROJECT ASSISTANTS */}
+        {/* PROJECT ASSISTANT */}
         <section>
-          {sectionTitle('Project Assistants')}
-          {assistants.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-              {assistants.map((a, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
-                  <input style={input} placeholder="Name" value={a.name} onChange={(e) => updateAssistant(i, 'name', e.target.value)} />
-                  <input style={input} type="email" placeholder="Email" value={a.email} onChange={(e) => updateAssistant(i, 'email', e.target.value)} />
-                  <button type="button" onClick={() => removeAssistant(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', padding: 4, display: 'flex' }}>
-                    <FiTrash2 size={14} />
-                  </button>
-                </div>
-              ))}
+          {sectionTitle('Project Assistant')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              {label('Project Assistant', true)}
+              <input style={input} placeholder="Name" value={projectAssistant} onChange={(e) => setProjectAssistant(e.target.value)} />
             </div>
-          )}
-          <button
-            type="button"
-            onClick={addAssistant}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3b7dd8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            <FiPlus size={14} /> Add Assistant
-          </button>
+            <div>
+              {label('Project Assistant Email', true)}
+              <input style={input} type="email" placeholder="assistant@example.com" value={projectAssistantEmail} onChange={(e) => setProjectAssistantEmail(e.target.value)} />
+            </div>
+          </div>
         </section>
 
         {/* LOCATION & DATES */}
@@ -237,11 +257,23 @@ export function EventSubmission({ companyName, onBack }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {label('Start Date', true)}
-              <input style={input} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <input
+                style={input}
+                type="date"
+                value={startDate}
+                min={today}
+                onChange={(e) => setStartDate(e.target.value < today ? today : e.target.value)}
+              />
             </div>
             <div>
               {label('End Date', true)}
-              <input style={input} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <input
+                style={input}
+                type="date"
+                value={endDate}
+                min={today}
+                onChange={(e) => setEndDate(e.target.value < today ? today : e.target.value)}
+              />
             </div>
           </div>
         </section>

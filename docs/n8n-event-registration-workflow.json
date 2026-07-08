@@ -1,0 +1,643 @@
+{
+  "name": "Event Registration Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "event-registration",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -880,
+        352
+      ],
+      "id": "0132a55f-db15-4229-a40e-6dbc2e4fd27b",
+      "name": "Webhook",
+      "webhookId": "729fff57-4d1b-439c-9fec-9eb2746888cb"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Event Approved: {{ $('Webhook').item.json.body.description }}",
+        "emailType": "text",
+        "message": "=Hi {{ $('Webhook').item.json.body.agency_lead }},\n\nThank you for your patience. Your event has been approved \u2014 please proceed with the Reccee.\n\nhttps://kevmongare.github.io/PrimeEdgeAIEMS/agent.html\n\nKind Regards\nPrimeEdgeAI\n{{ $today.format('dd-MMM-yyyy') }}",
+        "options": {
+          "senderName": "PrimeEdgeAI"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        352
+      ],
+      "id": "c0623d1c-250c-444e-8788-6c994ea3b48e",
+      "name": "Send Approval Email1",
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "9591e3d302c5fd793f5fa9e01c@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "PrimeEdgeAI"
+        },
+        "start": "={{ $('Webhook').item.json.body.start_date }}",
+        "end": "={{ $('Webhook').item.json.body.end_date }}",
+        "additionalFields": {
+          "allday": "yes",
+          "attendees": [
+            "={{ $('Webhook').item.json.body.email }}"
+          ],
+          "color": "1",
+          "description": "={{ $('Webhook').item.json.body.description }} \u2014 Assigned to {{ $('Webhook').item.json.body.agency_lead }}",
+          "location": "={{ $('Webhook').item.json.body.event_location }}",
+          "summary": "={{ $('Webhook').item.json.body.description }} \u2014 {{ $('Webhook').item.json.body.agency_lead }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        160
+      ],
+      "id": "27d9b3a5-131d-4351-a9d5-ee81dbd4f19a",
+      "name": "Create Calendar Event1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job_ID": "={{ $('Webhook').item.json.body.client.trim() }}-{{ $('Webhook').item.json.body.description.trim() }} {{ $('Webhook').item.json.body.start_date }}to {{ $('Webhook').item.json.body.end_date }}",
+            "Client": "={{ $('Webhook').item.json.body.client }}",
+            "Status": "={{ $('Webhook').item.json.body.status }}",
+            "Project Lead": "={{ $('Webhook').item.json.body.agency_lead }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Start Date": "={{ $('Webhook').item.json.body.start_date }}",
+            "End Date": "={{ $('Webhook').item.json.body.end_date }}",
+            "Where": "={{ $('Webhook').item.json.body.event_location }}",
+            "Description": "={{ $('Webhook').item.json.body.description }}",
+            "Client Lead": "={{ $('Webhook').item.json.body.client_lead }}",
+            "Project Assistant": "={{ $('Webhook').item.json.body.assistants ? $('Webhook').item.json.body.assistants.map(a => a.name).join(', ') : '' }}",
+            "Project Assistant Email": "={{ $('Webhook').item.json.body.assistants ? $('Webhook').item.json.body.assistants.map(a => a.email).join(', ') : '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client Lead",
+              "displayName": "Client Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Lead",
+              "displayName": "Project Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Assistant",
+              "displayName": "Project Assistant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Assistant Email",
+              "displayName": "Project Assistant Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Where",
+              "displayName": "Where",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "End Date",
+              "displayName": "End Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        80,
+        160
+      ],
+      "id": "2ee55980-6506-4a54-b367-0c3e0e2b2e90",
+      "name": "Append New Event1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE",
+          "mode": "list",
+          "cachedResultName": "BTL_Command_Center",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Events",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job_ID": "={{ $('Webhook').item.json.body.job_id.trim() }}",
+            "Client": "={{ $('Webhook').item.json.body.client }}",
+            "Status": "={{ $('Webhook').item.json.body.status }}",
+            "Project Lead": "={{ $('Webhook').item.json.body.agency_lead }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Start Date": "={{ $('Webhook').item.json.body.start_date }}",
+            "End Date": "={{ $('Webhook').item.json.body.end_date }}",
+            "Where": "={{ $('Webhook').item.json.body.event_location }}",
+            "Description": "={{ $('Webhook').item.json.body.description }}",
+            "Client Lead": "={{ $('Webhook').item.json.body.client_lead }}",
+            "Project Assistant": "={{ $('Webhook').item.json.body.assistants ? $('Webhook').item.json.body.assistants.map(a => a.name).join(', ') : '' }}",
+            "Project Assistant Email": "={{ $('Webhook').item.json.body.assistants ? $('Webhook').item.json.body.assistants.map(a => a.email).join(', ') : '' }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client Lead",
+              "displayName": "Client Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Lead",
+              "displayName": "Project Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Assistant",
+              "displayName": "Project Assistant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Assistant Email",
+              "displayName": "Project Assistant Email",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Where",
+              "displayName": "Where",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "End Date",
+              "displayName": "End Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        144,
+        368
+      ],
+      "id": "8e090a1e-d544-4582-9518-38ba7836d5c6",
+      "name": "Update Existing Event1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "route-by-status",
+              "leftValue": "={{ $('Webhook').item.json.body.status }}",
+              "rightValue": "Event Update",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "6f27a5ec-f017-4763-9dd4-40d37d248761",
+      "name": "Is Update?1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Event Declined: {{ $('Webhook').item.json.body.description }}",
+        "emailType": "text",
+        "message": "=Hi {{ $('Webhook').item.json.body.agency_lead }},\n\nThank you for submitting the new job card. Unfortunately, the application was not successful at this time.\n\nKind Regards\nPrimeEdgeAI\n{{ $today.format('dd-MMM-yyyy') }}",
+        "options": {
+          "senderName": "PrimeEdgeAI"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        448
+      ],
+      "id": "6ae9a124-920b-4f45-aec2-be61be58fb61",
+      "name": "Send Declined Email1",
+      "webhookId": "ad812484-d5c8-443e-a913-bf72398bb928",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7d7ed205-319f-4ee2-bac6-538026d8102a",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -432,
+        352
+      ],
+      "id": "8660963d-9e9c-4808-8427-ca3631535d5c",
+      "name": "Approved?1"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "kmongare4@gmail.com",
+        "subject": "=New Event Created: {{ $json.body.description }} - {{ $json.body.client_lead }}",
+        "message": "=Hi,\n\nKindly confirm approval of a new event from {{ $json.body.start_date }} to {{ $json.body.end_date }} at {{ $json.body.event_location }}, organised by {{ $json.body.client_lead }} - {{ $json.body.client }}.\n\nKind Regards\nPrimeEdgeAI\n{{ $now.format('dd MM yyyy') }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        352
+      ],
+      "id": "9386d9d5-79d2-4a3a-8140-87b877a5c27a",
+      "name": "Send message and wait for response1",
+      "webhookId": "d1155d31-4afd-4183-8c01-73a14ab7f3b1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REDACTED",
+          "name": "REPLACE_WITH_YOUR_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event1": {
+      "main": [
+        [
+          {
+            "node": "Send Approval Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append New Event1": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Event1": {
+      "main": [
+        [
+          {
+            "node": "Send Approval Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Update?1": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Event1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append New Event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?1": {
+      "main": [
+        [
+          {
+            "node": "Is Update?1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Declined Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "Approved?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4c0eca2d4c629ccb08ed2ed684ce71bb81662b26d8f5ba84c8bf2ae31a306e44"
+  }
+}

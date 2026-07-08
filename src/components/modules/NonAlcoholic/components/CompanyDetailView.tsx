@@ -8,11 +8,12 @@ import type { NonAlcoholicActionId } from '../actions'
 interface CompanyDetailViewProps {
   company: CompanyCardProps['company']
   action: NonAlcoholicActionId | null
+  moduleName?: string
   onBack: () => void
   onSelectAction: (id: NonAlcoholicActionId | null) => void
 }
 
-export function CompanyDetailView({ company, action, onBack, onSelectAction }: CompanyDetailViewProps) {
+export function CompanyDetailView({ company, action, moduleName = 'Non Alcoholic', onBack, onSelectAction }: CompanyDetailViewProps) {
   return (
     <div
       style={{
@@ -36,7 +37,7 @@ export function CompanyDetailView({ company, action, onBack, onSelectAction }: C
         }}
       >
         <Breadcrumb
-          module="Non Alcoholic"
+          module={moduleName}
           company={company.name}
           action={action}
           onModuleClick={onBack}

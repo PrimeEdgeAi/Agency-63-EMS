@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { FiCheck, FiPlus, FiTrash2 } from 'react-icons/fi'
 import { supabase } from '../../../lib/supabase'
+import { submitRequisitionWorkflow } from '../../../data'
+import { logAuditEvent } from '../../../lib/audit'
 
-const SHEET_CSV_URL       = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
-const REQUISITION_WEBHOOK = 'https://primeedgeai.app.n8n.cloud/webhook/requisition-request'
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1AO-06SYVS_uVnBWkM5smUFeSoTWUeq0GbFvX7tJr3oE/export?format=csv&gid=0'
 
 // const CATEGORIES = ['Equipment', 'Supplies & Materials', 'Services', 'Transport & Logistics', 'Catering', 'Marketing & Print', 'Venue', 'Staffing', 'Other']
 const URGENCY    = ['Low', 'Medium', 'High', 'Urgent']
@@ -58,6 +59,13 @@ export function RequisitionForm({ companyName, onBack }: Props) {
   const [reqName, setReqName]           = useState('')
   const [reqEmail, setReqEmail]         = useState('')
   const [dateRequired, setDateRequired] = useState('')
+  const today = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
 
   // auto-load jobs for logged-in user
   useEffect(() => {
@@ -156,11 +164,20 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       submitted_at:      new Date().toISOString(),
     }
     try {
-      await fetch(REQUISITION_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await submitRequisitionWorkflow(payload)
+      if (!result.ok) throw new Error(result.error || 'Google Sheets sync failed')
+
+      void logAuditEvent({
+        action: 'submit_requisition',
+        entity_type: 'requisition',
+        entity_id: payload.job_id || payload.client || null,
+        metadata: { client: payload.client, urgency: payload.urgency },
+      })
       setRef('REQ-' + Date.now().toString(36).toUpperCase())
       setSubmitted(true)
-    } catch { setError('Submission failed. Please try again.') }
-    finally { setSubmitting(false) }
+    } catch (error: any) {
+      setError(error?.message || 'Submission failed. Please try again.')
+    } finally { setSubmitting(false) }
   }
 
   // ── Success ──
@@ -241,7 +258,7 @@ export function RequisitionForm({ companyName, onBack }: Props) {
       </div>
       <div style={{ marginBottom: 16, maxWidth: 260 }}>
         <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>Date Required <span style={{ color: '#e74c3c' }}>*</span></div>
-        <input style={inp} type="date" value={dateRequired} onChange={e => setDateRequired(e.target.value)} />
+        <input style={inp} type="date" value={dateRequired} min={today} onChange={e => setDateRequired(e.target.value < today ? today : e.target.value)} />
       </div>
 
       {/* ── Line Items ── */}

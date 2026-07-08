@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-import { FiGrid, FiStar, FiZap, FiCoffee, FiDroplet, FiChevronRight, FiLogOut, FiHelpCircle } from 'react-icons/fi'
+import { FiGrid, FiStar, FiZap, FiCoffee, FiDroplet, FiChevronRight, FiLogOut, FiHelpCircle, FiShield } from 'react-icons/fi'
 import type { PageId, AppUser } from '../../types'
+import { fetchPendingRecceCountFromWebhook, subscribeData } from '../../data'
 import { GiMoneyStack, GiOnTarget } from 'react-icons/gi'
 import { TbReportSearch } from 'react-icons/tb'
 import { IoSettingsOutline } from 'react-icons/io5'
@@ -48,6 +49,7 @@ const NAV: NavSection[] = [
     section: 'Settings',
     items: [
       { id: 'admin', label: 'Admin', icon: <TbReportSearch /> },
+      { id: 'manager', label: 'Manager', icon: <FiShield /> },
       { id: 'settings', label: 'Settings', icon: <IoSettingsOutline /> },
       { id: 'help',     label: 'Help',     icon: <FiHelpCircle /> },
     ],
@@ -65,6 +67,23 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     'Business Modules': true,
   })
+
+  const [pendingCount, setPendingCount] = useState<number>(0)
+
+  useEffect(() => {
+    let mounted = true
+    const refresh = async () => {
+      try {
+        const c = await fetchPendingRecceCountFromWebhook()
+        if (mounted) setPendingCount(c)
+      } catch {
+        if (mounted) setPendingCount(0)
+      }
+    }
+    refresh()
+    const unsub = subscribeData(() => { void refresh() })
+    return () => { mounted = false; unsub() }
+  }, [])
 
   // const initials = (user.user_metadata.full_name ?? user.email ?? 'U')[0].toUpperCase()
 
@@ -149,7 +168,8 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
             >
               {user.user_metadata.full_name ?? 'User'}
             </div>
-            <div
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
               style={{
                 color: '#d8dbe1',
                 fontSize: 11,
@@ -159,6 +179,16 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
               }}
             >
               {user.email}
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <div
+                  className={pendingCount > 0 ? 'btl-pulse' : ''}
+                  title="Pending recces"
+                  style={{ background: pendingCount > 0 ? '#ef4444' : '#10b981', color: '#fff', padding: '6px 10px', borderRadius: 999, fontWeight: 800, fontSize: 12 }}
+                >
+                  {pendingCount}
+                </div>
+              </div>
             </div>
             </div>
           </div>
@@ -199,9 +229,12 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
               {isOpen &&
                 section.items
                   .filter((item) => {
-                    // hide Admin item unless the logged-in user is the configured admin
+                    // hide admin and manager items unless the logged-in user is authorized
                     if (item.id === 'admin') {
                       return user.email === 'kevin.n.mongare@gmail.com'
+                    }
+                    if (item.id === 'manager') {
+                      return ['ericmunene1410@gmail.com', 'theafricanpulsepod@gmail.com'].includes(user.email)
                     }
                     return true
                   })
