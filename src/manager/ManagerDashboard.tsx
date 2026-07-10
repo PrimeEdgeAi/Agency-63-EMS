@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getEventsData } from '../data'
 import { ManagerSidebar } from './components/ManagerSidebar'
 import { AgentsWorkflowView } from './components/AgentsWorkflowView'
-import { OverviewPage } from './components/OverviewPage'
-import { ProposalsPage } from './components/ProposalsPage'
+import { ManagerExecutiveDashboard } from '../components/dashboard/RoleDashboards'
+import { ModulesPage, ReportsPage, TargetsPage, TeamPage } from './components/ManagerPages'
+import { ManagerProposalsPage } from './components/ManagerProposalsPage'
 import ModuleData from '../components/modules/NonAlcoholic/types'
-import type { NonAlcoholicActionId } from '../components/modules/NonAlcoholic/actions'
 import { PayRequestPage } from '../components/finance/PayRequestPage'
+import { fetchProposalsFromN8nWebhook } from '../lib/proposalWebhook'
 import type { Proposal } from './components/ProposalsPage'
 
 const MANAGER_EMAILS = ['ericmunene1410@gmail.com', 'theafricanpulsepod@gmail.com']
-const PROPOSALS_WEBHOOK = 'https://kenmongare.app.n8n.cloud/webhook/ProposalsCheck'
 
-type ManagerPage = 'overview' | 'events' | 'recce' | 'requisitions' | 'completed' | 'jobs' | 'payments'
+type ManagerPage = 'overview' | 'modules' | 'events' | 'team' | 'pay-request' | 'reports' | 'targets' | 'proposals'
+
+function getManagerPage(slug: string): ManagerPage | null {
+  const page = slug || 'overview'
+  return ['overview', 'modules', 'events', 'team', 'pay-request', 'reports', 'targets', 'proposals'].includes(page)
+    ? (page as ManagerPage)
+    : null
+}
 
 interface Employee {
   id: number
@@ -26,7 +34,9 @@ interface Employee {
 }
 
 export function ManagerDashboard(props?: { onLogout?: () => void }) {
-  const [active, setActive] = useState<ManagerPage>('overview')
+  const location = useLocation()
+  const pageSlug = location.pathname.replace(/^\/manager\/?/, '')
+  const active = getManagerPage(pageSlug)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
   const [assignedAgents, setAssignedAgents] = useState<Employee[]>([])
@@ -35,7 +45,16 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
 
   const events = useMemo(() => getEventsData(), [])
   const kcbJobs = useMemo(
-    () => events.filter((event) => /kcb/i.test(event.title) || /kcb/i.test(event.category) || /kcb/i.test(event.story)),
+    () =>
+      events
+        .filter((event) => /kcb/i.test(event.title) || /kcb/i.test(event.category) || /kcb/i.test(event.story))
+        .map((event) => ({
+          id: event.id,
+          title: event.title,
+          location: event.location,
+          status: event.status,
+          date: event.date,
+        })),
     [events]
   )
   const kcbCompanies = useMemo(
@@ -51,29 +70,21 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
 
   async function fetchProposalsFromWebhook() {
     try {
-      const response = await fetch(PROPOSALS_WEBHOOK, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to load proposals (${response.status})`)
-      }
-      const data = await response.json() as { count?: number; items?: Array<Record<string, unknown>> }
-      const items = Array.isArray(data.items) ? data.items : []
-      return items.map((item, index) => {
-        const statusRaw = ((item['Proposal Done'] ?? item.Proposal_Done ?? item.proposal_done ?? 'No') as string).toString().trim().toLowerCase()
-        const status: Proposal['status'] = statusRaw === 'yes' || statusRaw === 'approved' ? 'approved' : 'pending'
-        return {
-          id: String(item.Job_ID ?? item.id ?? `proposal-${index + 1}`),
-          title: String(item.Description ?? item.Title ?? item.Job_ID ?? `Proposal ${index + 1}`),
-          budget: Number(item.Budget ?? item.budget ?? 0) || 0,
-          submitted_by: String(item.Client ?? item.Email ?? 'Unknown'),
-          submitted_at: String(item['Start Date'] ?? item.End_Date ?? item.submitted_at ?? new Date().toISOString()),
-          file_name: item['file_name'] as string | null ?? item.FileName as string | null ?? null,
-          status,
-          approved_at: status === 'approved' ? String(item['approved_at'] ?? item.Approved_At ?? new Date().toISOString()) : undefined,
-        }
-      })
+      const items = await fetchProposalsFromN8nWebhook()
+      return items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        budget: item.budget,
+        submitted_by: item.submitted_by,
+        submitted_at: item.submitted_at,
+        file_name: item.file_name,
+        status: item.status,
+        approved_at: item.approved_at,
+        job_id: item.job_id,
+        client: item.client,
+        location: item.location,
+        status_label: item.status_label,
+      })) as Proposal[]
     } catch (error) {
       console.error('Proposals webhook load failed', error)
       return []
@@ -87,16 +98,20 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
       const { data: sessionData } = await supabase.auth.getSession()
       const email = sessionData?.session?.user?.email ?? ''
 
-      const [{ data: employeeData, error: employeeError }, webhookProposals] = await Promise.all([
+      const [employeeResult, webhookProposals] = await Promise.allSettled([
         supabase.from('employees').select('*'),
         fetchProposalsFromWebhook(),
       ])
 
-      if (employeeError) throw employeeError
-
+      const employeeError = employeeResult.status === 'rejected' ? employeeResult.reason : null
+      const employeeData = employeeResult.status === 'fulfilled' ? (employeeResult.value?.data || []) : []
       const employees = (employeeData || []) as Employee[]
       const foundManager = employees.find((item) => item.role === 'manager' && item.email === email) ?? null
       const isManagerUser = MANAGER_EMAILS.includes(email) || !!foundManager
+
+      if (employeeError) {
+        console.warn('Employee lookup failed, continuing with fallback data.', employeeError)
+      }
 
       if (!isManagerUser) {
         setAccessDenied(true)
@@ -105,8 +120,8 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
 
       const agents = employees.filter((item) => item.role === 'agent' && foundManager ? item.manager_id === foundManager.id : true)
       setAssignedAgents(agents)
-      setProposals(webhookProposals)
-      setPendingProposalCount(webhookProposals.filter((proposal) => proposal.status === 'pending').length)
+      setProposals(webhookProposals.status === 'fulfilled' ? webhookProposals.value : [])
+      setPendingProposalCount((webhookProposals.status === 'fulfilled' ? webhookProposals.value : []).filter((proposal) => proposal.status === 'pending').length)
     } catch (error) {
       console.error('Load manager data error', error)
       setAccessDenied(true)
@@ -116,15 +131,20 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
   }
 
   useEffect(() => {
-    loadData()
+    void loadData()
 
     const onRecceComplete = () => {
-      loadData()
+      void loadData()
     }
 
     window.addEventListener('BtlRecceCompleted', onRecceComplete)
     return () => window.removeEventListener('BtlRecceCompleted', onRecceComplete)
   }, [])
+
+  useEffect(() => {
+    if (active !== 'proposals') return
+    void loadData()
+  }, [active])
 
   function isDelayed(p: Proposal) {
     if (p.status === 'approved') return false
@@ -132,9 +152,16 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
     return Date.now() - submitted > 72 * 3600 * 1000
   }
 
+  function handleProposalApproved(id: string) {
+    setProposals((current) => current.map((proposal) => proposal.id === id ? { ...proposal, status: 'approved', approved_at: new Date().toISOString() } : proposal))
+    setPendingProposalCount((current) => Math.max(0, current - 1))
+  }
+
   const handleLogout = () => {
     if (props?.onLogout) props.onLogout()
   }
+
+  if (active === null) return <Navigate to="/manager/overview" replace />
 
   if (loading) return (
     <div style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Arial' }}>
@@ -157,8 +184,6 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
       <ManagerSidebar
-        active={active}
-        setActive={(page) => setActive(page as ManagerPage)}
         onLogout={handleLogout}
         pendingCount={pendingProposalCount}
       />
@@ -172,32 +197,42 @@ export function ManagerDashboard(props?: { onLogout?: () => void }) {
         background: '#f3f4f6',
       }}>
         {active === 'overview' && (
-          <OverviewPage
-            assignedAgentCount={assignedAgents.length}
+          <ManagerExecutiveDashboard />
+        )}
+
+        {active === 'modules' && <ModulesPage />}
+
+        {active === 'events' && <AgentsWorkflowView initialAction="events" />}
+
+        {active === 'team' && <TeamPage agents={assignedAgents} />}
+
+        {active === 'pay-request' && (
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', minHeight: 680, padding: 28 }}>
+            <PayRequestPage />
+          </div>
+        )}
+
+        {active === 'reports' && (
+          <ReportsPage
             proposalCount={visibleProposals.length}
             approvedCount={visibleProposals.filter((proposal) => proposal.status === 'approved').length}
             delayedCount={visibleProposals.filter((proposal) => isDelayed(proposal)).length}
-            companies={kcbCompanies}
-            kcbJobs={kcbJobs}
+            pendingProposalCount={pendingProposalCount}
           />
         )}
 
-        {(['events', 'recce', 'requisitions', 'completed', 'jobs'] as ManagerPage[]).includes(active) && (
-          <AgentsWorkflowView initialAction={active as NonAlcoholicActionId} />
+        {active === 'targets' && (
+          <TargetsPage companies={kcbCompanies} kcbJobs={kcbJobs} />
         )}
+
         {active === 'proposals' && (
-          <ProposalsPage
+          <ManagerProposalsPage
             proposals={visibleProposals}
             loading={loading}
             pendingCount={pendingProposalCount}
             isDelayed={isDelayed}
+            onApproveProposal={handleProposalApproved}
           />
-        )}
-
-        {active === 'payments' && (
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', minHeight: 680, padding: 28 }}>
-            <PayRequestPage />
-          </div>
         )}
       </main>
     </div>

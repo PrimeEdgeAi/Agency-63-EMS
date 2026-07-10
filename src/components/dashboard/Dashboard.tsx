@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import type { PageId, AppUser } from '../../types'
+import { useNavigate } from 'react-router-dom'
 import { DashboardHeader, KpiCard as OverviewKpiCard, SectionHeader, ShortcutCard as OverviewShortcutCard } from './components/DashboardOverviewCards'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -247,12 +247,8 @@ function RecceeRow({ event }: { event: typeof EVENTS[0] }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-interface DashboardProps {
-  user: AppUser
-  setActive: (id: PageId) => void
-}
-
-export function Dashboard({ setActive }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate()
   const [timelineFilter, setTimelineFilter] = useState<string>('All')
 
   const totalClaims  = useMemo(() => CLAIMS.reduce((a, c) => a + c.total, 0), [])
@@ -331,10 +327,10 @@ export function Dashboard({ setActive }: DashboardProps) {
         <div style={{ marginBottom: 24 }}>
           <SectionHeader title="Quick Access" theme={C} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            <OverviewShortcutCard label="Events"           value={String(EVENTS.length)}     sub="View all activations"    accent={C.blue}   onClick={() => setActive('Events' as PageId)} theme={C} />
-            <OverviewShortcutCard label="Claims"           value={fmtKES(totalClaims)}       sub="Staff pay requests"      accent={C.amber}  onClick={() => setActive('Pay Requests' as PageId)} theme={C} />
-            <OverviewShortcutCard label="Reccee Coverage"  value={`${recceeHit}/${EVENTS.length}`} sub="Sites scouted"    accent={C.green}  onClick={() => setActive('Reports' as PageId)} theme={C} />
-            <OverviewShortcutCard label="Requisitions"     value={String(REQS.length)}       sub="Procurement lines"       accent={C.red}    onClick={() => setActive('Reports' as PageId)} theme={C} />
+            <OverviewShortcutCard label="Events"           value={String(EVENTS.length)}     sub="View all activations"    accent={C.blue}   onClick={() => navigate('/events')} theme={C} />
+            <OverviewShortcutCard label="Claims"           value={fmtKES(totalClaims)}       sub="Staff pay requests"      accent={C.amber}  onClick={() => navigate('/payments')} theme={C} />
+            <OverviewShortcutCard label="Reccee Coverage"  value={`${recceeHit}/${EVENTS.length}`} sub="Sites scouted"    accent={C.green}  onClick={() => navigate('/recce')} theme={C} />
+            <OverviewShortcutCard label="Requisitions"     value={String(REQS.length)}       sub="Procurement lines"       accent={C.red}    onClick={() => navigate('/requisitions')} theme={C} />
           </div>
         </div>
 
@@ -444,7 +440,7 @@ export function Dashboard({ setActive }: DashboardProps) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'Georgia, serif' }}>Recent Claims</h2>
             <button
-              onClick={() => setActive('Pay Requests' as PageId)}
+              onClick={() => navigate('/payments')}
               style={{
                 background: C.blueLight, border: `1px solid ${C.blueBorder}`,
                 color: C.blue, borderRadius: 6, padding: '5px 12px',

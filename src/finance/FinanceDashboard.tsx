@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { FinanceSidebar } from './components/FinanceSidebar'
 import { SettingsPage } from '../components/settings/SettingsPage'
+import { FinanceExecutiveDashboard } from '../components/dashboard/RoleDashboards'
 import { StatusBadge, PageHeader, Button, Card, Modal, Field, Input, Select } from '../components/ui'
 import {
   getPayRequestsData,
@@ -15,10 +17,17 @@ import {
 import type { AppUser, PayRequest, RequisitionItem } from '../types'
 import { logAuditEvent } from '../lib/audit'
 
-const FINANCE_EMAIL = 'kennedymongaremirambo@gmail.com'
+const FINANCE_EMAIL = ['kennedymongaremirambo@gmail.com', 'emunene924@gmail.com']
 const CASH_THRESHOLD = 100000
 
 type FinancePage = 'overview' | 'pay-requests' | 'requisitions' | 'settings'
+
+function getFinancePage(slug: string): FinancePage | null {
+  const page = slug || 'overview'
+  return ['overview', 'pay-requests', 'requisitions', 'settings'].includes(page)
+    ? (page as FinancePage)
+    : null
+}
 
 type ApprovalTarget = {
   type: 'pay' | 'req'
@@ -28,7 +37,10 @@ type ApprovalTarget = {
 }
 
 export default function FinanceDashboard(props: { user: AppUser; onLogout?: () => void }) {
-  const [active, setActive] = useState<FinancePage>('overview')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const pageSlug = location.pathname.replace(/^\/finance\/?/, '')
+  const active = getFinancePage(pageSlug)
   const [payRequests, setPayRequests] = useState<PayRequest[]>(() => getPayRequestsData())
   const [requisitions, setRequisitions] = useState<RequisitionItem[]>(() => getRequisitionsData())
   const [approvalTarget, setApprovalTarget] = useState<ApprovalTarget | null>(null)
@@ -73,19 +85,6 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
     const timer = window.setTimeout(() => setMessage(null), 4000)
     return () => window.clearTimeout(timer)
   }, [message])
-
-  const pendingPayRequests = payRequests.filter((request) => request.status === 'pending')
-  const pendingRequisitions = requisitions.filter((request) => request.status === 'pending')
-
-  const totalPendingAmount = useMemo(
-    () => payRequests.reduce((sum, request) => (request.status === 'pending' ? sum + request.amount : sum), 0),
-    [payRequests]
-  )
-
-  const totalRequisitionValue = useMemo(
-    () => requisitions.reduce((sum, request) => (request.status === 'pending' ? sum + request.totalAmount : sum), 0),
-    [requisitions]
-  )
 
   const openApproval = (target: ApprovalTarget) => {
     setApprovalTarget(target)
@@ -150,7 +149,7 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
-      <FinanceSidebar active={active} setActive={setActive} onLogout={props?.onLogout ?? (() => {})} />
+      <FinanceSidebar onLogout={props?.onLogout ?? (() => {})} />
 
       <main style={{ marginLeft: 280, flex: 1, padding: active === 'overview' ? 0 : 32, minHeight: '100vh' }}>
         <div style={{ padding: active === 'overview' ? '32px' : 0 }}>
@@ -167,42 +166,14 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
           )}
 
           {active === 'overview' && (
-            <div style={{ display: 'grid', gap: 24, paddingBottom: 32 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
-                {[
-                  { label: 'Pending Pay Requests', value: pendingPayRequests.length, bg: '#fff', color: '#111' },
-                  { label: 'Pending Requisitions', value: pendingRequisitions.length, bg: '#fff', color: '#111' },
-                  { label: 'Pending Payment Value', value: `KES ${totalPendingAmount.toLocaleString()}`, bg: '#f8fafc', color: '#1e3a8a' },
-                  { label: 'Pending Requisition Value', value: `KES ${totalRequisitionValue.toLocaleString()}`, bg: '#f8fafc', color: '#1e3a8a' },
-                ].map((card) => (
-                  <Card key={card.label} style={{ padding: 24, background: card.bg, borderRadius: 18, border: '1px solid #e5e7eb' }}>
-                    <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>
-                      {card.label}
-                    </div>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: card.color }}>
-                      {card.value}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              <Card style={{ padding: 24, borderRadius: 18, border: '1px solid #e5e7eb' }}>
-                <h2 style={{ fontSize: 18, margin: 0, fontWeight: 700, marginBottom: 16 }}>Finance Approval Rules</h2>
-                <div style={{ display: 'grid', gap: 12, color: '#475569', fontSize: 14, lineHeight: 1.7 }}>
-                  <p>Finance team members can approve pay claims and requisitions from this dashboard.</p>
-                  <p>Amounts up to KES 100,000 may be paid in cash.</p>
-                  <p>Amounts above KES 100,000 require cheque payment and a transaction ID.</p>
-                  <p>All approvals are logged to <strong>{FINANCE_EMAIL}</strong>.</p>
-                </div>
-              </Card>
-            </div>
+            <FinanceExecutiveDashboard />
           )}
 
           {active === 'pay-requests' && (
             <div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 22 }}>
-                <Button variant="secondary" onClick={() => setActive('overview')}>Back to overview</Button>
-                <Button onClick={() => setActive('requisitions')}>View requisitions</Button>
+                <Button variant="secondary" onClick={() => navigate('/finance/overview')}>Back to overview</Button>
+                <Button onClick={() => navigate('/finance/requisitions')}>View requisitions</Button>
               </div>
               <Card>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -251,8 +222,8 @@ export default function FinanceDashboard(props: { user: AppUser; onLogout?: () =
           {active === 'requisitions' && (
             <div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 22 }}>
-                <Button variant="secondary" onClick={() => setActive('overview')}>Back to overview</Button>
-                <Button onClick={() => setActive('pay-requests')}>View pay requests</Button>
+                <Button variant="secondary" onClick={() => navigate('/finance/overview')}>Back to overview</Button>
+                <Button onClick={() => navigate('/finance/pay-requests')}>View pay requests</Button>
               </div>
               <Card>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>

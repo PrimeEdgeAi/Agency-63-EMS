@@ -11,6 +11,9 @@ export interface Proposal {
   status: 'pending' | 'approved'
   approved_at?: string | null
   last_reminder_at?: string | null
+  client?: string | null
+  location?: string | null
+  status_label?: string | null
 }
 
 interface ProposalsPageProps {
