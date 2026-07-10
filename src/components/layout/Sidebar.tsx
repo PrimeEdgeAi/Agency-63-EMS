@@ -1,120 +1,43 @@
-import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-import { FiGrid, FiStar, FiZap, FiCoffee, FiDroplet, FiChevronRight, FiLogOut, FiHelpCircle, FiShield } from 'react-icons/fi'
-import type { PageId, AppUser } from '../../types'
-import { fetchPendingRecceCountFromWebhook, subscribeData } from '../../data'
-import { GiMoneyStack, GiOnTarget } from 'react-icons/gi'
-import { TbReportSearch } from 'react-icons/tb'
-import { IoSettingsOutline } from 'react-icons/io5'
+import { NavLink } from 'react-router-dom'
+import { FiLogOut, FiBarChart2, FiGrid, FiFileText, FiClipboard, FiBriefcase, FiCheckCircle } from 'react-icons/fi'
+import { FaDatabase } from 'react-icons/fa'
+import { TbMoneybag } from 'react-icons/tb'
 
-interface NavItem {
-  id: PageId
-  label: string
-  icon: ReactNode
-}
-
-interface NavSection {
-  section: string
-  items: NavItem[]
-}
-
-const NAV: NavSection[] = [
-  {
-    section: 'Main',
-    items: [{ id: 'dashboard', label: 'Dashboard', icon: <FiGrid /> }],
-  },
-  {
-    section: 'Business Modules',
-    items: [
-      { id: 'UniCorns', label: 'UniCorns', icon: <FiStar /> },
-      { id: 'One Off', label: 'One Off', icon: <FiZap /> },
-      { id: 'Alcoholic', label: 'Alcoholic', icon: <FiCoffee /> },
-      { id: 'NonAlcoholic', label: 'Non Alcoholic', icon: <FiDroplet /> }
-    ],
-  },
-
-  {
-    section: 'Finance',
-    items: [
-      { id: 'Pay Requests', label: 'Pay Requests', icon: <GiMoneyStack /> },
-      { id: 'Target', label: 'Target', icon: <GiOnTarget /> },
-      { id: 'Reports', label: 'Reports', icon: <TbReportSearch /> },
-    ],
-  },
-  // {
-  //   section: 'Finance',
-  //   items: [{ id: 'payrequest', label: 'Pay Request', icon: '⊟', badge: '3' }],
-  // },
-  {
-    section: 'Settings',
-    items: [
-      { id: 'admin', label: 'Admin', icon: <TbReportSearch /> },
-      { id: 'manager', label: 'Manager', icon: <FiShield /> },
-      { id: 'settings', label: 'Settings', icon: <IoSettingsOutline /> },
-      { id: 'help',     label: 'Help',     icon: <FiHelpCircle /> },
-    ],
-  },
+const MENU_ITEMS: Array<{ to: string; label: string; icon: ReactNode }> = [
+  { to: '/',             label: 'Overview',     icon: <FiBarChart2 /> },
+  { to: '/events',       label: 'Events',       icon: <FiGrid /> },
+  { to: '/recce',        label: 'Recce',        icon: <FaDatabase /> },
+  { to: '/proposals',    label: 'Proposals',    icon: <FiFileText /> },
+  { to: '/requisitions', label: 'Requisitions', icon: <FiClipboard /> },
+  { to: '/completed',    label: 'Completed',    icon: <FiCheckCircle /> },
+  { to: '/jobs',         label: 'Jobs',         icon: <FiBriefcase /> },
+  { to: '/payments',     label: 'Payments',     icon: <TbMoneybag /> },
 ]
 
 interface SidebarProps {
-  active: PageId
-  setActive: (id: PageId) => void
-  user: AppUser
   onLogout: () => void
 }
 
-export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    'Business Modules': true,
-  })
-
-  const [pendingCount, setPendingCount] = useState<number>(0)
-
-  useEffect(() => {
-    let mounted = true
-    const refresh = async () => {
-      try {
-        const c = await fetchPendingRecceCountFromWebhook()
-        if (mounted) setPendingCount(c)
-      } catch {
-        if (mounted) setPendingCount(0)
-      }
-    }
-    refresh()
-    const unsub = subscribeData(() => { void refresh() })
-    return () => { mounted = false; unsub() }
-  }, [])
-
-  // const initials = (user.user_metadata.full_name ?? user.email ?? 'U')[0].toUpperCase()
-
-  const toggleSection = (section: string) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }))
-  }
+export function Sidebar({ onLogout }: SidebarProps) {
 
   return (
     <aside
       style={{
         width: 280,
-        minHeight: '100vh',
-        background: 'white',
+        background: '#248afd',
+        color: '#fff',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 50,
-        borderRight: '1px solid #e5e5e5',
+        height: '100vh',
+        boxShadow: '0 4px 12px rgba(36, 138, 253, 0.15)',
       }}
     >
       {/* Logo */}
       <div style={{  borderBottom: '1px solid #248afd' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '28px 24px 24px', }}>
-          <div
+          {/* <div
             style={{
               width: 36,
               height: 36,
@@ -133,12 +56,12 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
           >
             <img src="./images.jpg" alt=""  />
             
-          </div>
+          </div> */}
           <div>
-            <div style={{ color: '#111', fontSize: 13, fontWeight: 700, letterSpacing: 1.2 }}>
+            <div style={{ color: 'white', fontSize: 13, fontWeight: 700, letterSpacing: 1.2 }}>
               EVENTPORTAL
             </div>
-            <div style={{ color: '#6b7280', fontSize: 11, letterSpacing: 0.5, marginTop: 1 }}>
+            <div style={{ color: 'white', fontSize: 11, letterSpacing: 0.5, marginTop: 1 }}>
               Management System
             </div>
           </div>
@@ -154,7 +77,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
             <div
             style={{padding: '10px 24px 24px',}}>
                           
-            <div
+            {/* <div
               style={{
                 color: '#ffffff',
                 fontSize: 13,
@@ -167,8 +90,8 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
               }}
             >
               {user.user_metadata.full_name ?? 'User'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            </div> */}
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div
               style={{
                 color: '#d8dbe1',
@@ -189,7 +112,7 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
                   {pendingCount}
                 </div>
               </div>
-            </div>
+            </div> */}
             </div>
           </div>
         </div>
@@ -197,80 +120,36 @@ export function Sidebar({ active, setActive, user, onLogout }: SidebarProps) {
       
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
-        {NAV.map((section) => {
-          const isOpen = openSections[section.section] ?? true
-
-          return (
-            <div key={section.section} style={{ marginBottom: 8 }}>
-              <button
-                type="button"
-                onClick={() => toggleSection(section.section)}
-                style={{
-                  width: '100%',
-                  padding: '16px 24px 8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#248afd',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  letterSpacing: 1.8,
-                  textTransform: 'uppercase',
-                }}
-              >
-                <span>{section.section}</span>
-                <FiChevronRight style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-              </button>
-
-              {isOpen &&
-                section.items
-                  .filter((item) => {
-                    // hide admin and manager items unless the logged-in user is authorized
-                    if (item.id === 'admin') {
-                      return user.email === 'kevin.n.mongare@gmail.com'
-                    }
-                    if (item.id === 'manager') {
-                      return ['ericmunene1410@gmail.com', 'theafricanpulsepod@gmail.com'].includes(user.email)
-                    }
-                    return true
-                  })
-                  .map((item) => {
-                    const isActive = active === item.id
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActive(item.id)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 24px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          background: isActive ? '#eef4ff' : 'transparent',
-                          border: 'none',
-                          borderLeft: isActive ? '4px solid #248afd' : '4px solid transparent',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s',
-                          color: isActive ? '#111' : '#475569',
-                          fontSize: 14,
-                          fontFamily: 'Georgia, serif',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <span style={{ fontSize: 16, width: 24, textAlign: 'center', color: isActive ? '#248afd' : '#94a3b8' }}>
-                          {item.icon}
-                        </span>
-                        <span style={{ flex: 1 }}>{item.label}</span>
-                      </button>
-                    )
-                  })}
-            </div>
-          )
-        })}
+      <nav style={{ flex: 1, padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
+        {MENU_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              width: '100%',
+              padding: '14px 20px',
+              background: isActive ? 'rgba(255, 255, 255, 0.18)' : 'transparent',
+              border: 'none',
+              color: isActive ? '#fff' : 'rgba(255,255,255,0.85)',
+              fontSize: 14,
+              fontWeight: isActive ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              borderLeft: `3px solid ${isActive ? '#fff' : 'transparent'}`,
+              textAlign: 'left',
+              textDecoration: 'none',
+            })}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, color: 'inherit' }}>
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       {/* User */}

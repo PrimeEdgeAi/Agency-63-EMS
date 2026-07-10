@@ -23,6 +23,11 @@ export type PageId =
   | 'Pay Requests'
   | 'Target'
   | 'Reports'
+  | 'proposals'
+  | 'requisitions'
+  | 'completed'
+  | 'jobs'
+  | 'payments'
 
   | 'events'
   | 'recce'

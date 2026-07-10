@@ -1,45 +1,67 @@
 import { useEffect, useState } from 'react'
 import { useLocation, Navigate } from 'react-router-dom'
-import { AdminSidebar } from './components/AdminSidebar'
+import { AgentSidebar } from './components/AdminSidebar'
 import { ProposalsPage, type Proposal } from './components/ProposalsPage'
-import { SettingsPage } from './components/SettingsPage'
-import TeamPage from './components/Team'
-import BillingPage from './components/Billing'
-import DBConnections from './components/DBConnections'
-import { OverviewPage } from './components/OverviewPage'
+import { AgentExecutiveDashboard } from '../components/dashboard/RoleDashboards'
+// import { NonAlcoholic } from '../components/modules/NonAlcoholic/NonAlcoholic'
+import { EventSubmission } from '../components/modules/forms/EventSubmission'
+import { RecceForm } from '../components/modules/forms/RecceForm'
+import { RequisitionForm } from '../components/modules/forms/RequisitionForm'
+import { ActionContent } from '../components/modules/NonAlcoholic/components/ActionContent'
+import { PayRequestPage } from '../components/finance/PayRequestPage'
 import { supabase } from '../lib/supabase'
-import { fetchProposalsFromN8nWebhook, sendProposalApprovalWebhook } from '../lib/proposalWebhook'
-import { loadGoogleSheetsConfig } from './components/GoogleSheetsConnection'
+import { fetchProposalsFromN8nWebhook } from '../lib/proposalWebhook'
 
 const REMINDER_WEBHOOK = (import.meta.env.VITE_REMINDER_WEBHOOK_URL as string) || ''
-const ADMIN_EMAIL = 'kevin.n.mongare@gmail.com'
+const ADMIN_EMAIL = 'kmongare4@gmail.com'
 
 function nowIso() { return new Date().toISOString() }
 
-// ── Add 'overview' to the page union ─────────────────────────────────────────
-type AdminPage = 'overview' | 'proposals' | 'settings' | 'team' | 'billing' | 'db-connections'
+// ── Add 'overview' and workflow pages to the page union ───────────────────────
+type AgentPage =
+  | 'overview'
+  | 'events'
+  | 'recce'
+  | 'proposals'
+  | 'requisitions'
+  | 'jobs'
+  | 'completed'
+  | 'pay-requests'
+  | 'settings'
+  // | 'team'
+  // | 'billing'
+  // | 'db-connections'
 
-function getAdminPage(slug: string): AdminPage | null {
+function getAgentPage(slug: string): AgentPage | null {
   const page = slug || 'overview'
-  return ['overview', 'proposals', 'settings', 'team', 'billing', 'db-connections'].includes(page)
-    ? (page as AdminPage)
+  return [
+    'overview',
+    'events',
+    'recce',
+    'proposals',
+    'requisitions',
+    'jobs',
+    'completed',
+    'pay-requests',
+    'settings',
+    'team',
+    'billing',
+    'db-connections',
+  ].includes(page)
+    ? (page as AgentPage)
     : null
 }
 
-export function AdminDashboard(props?: { onLogout?: () => void }) {
+export function AgentDashboard(props?: { onLogout?: () => void }) {
   const location = useLocation()
-  const pageSlug = location.pathname.replace(/^\/admin\/?/, '')
-  const active = getAdminPage(pageSlug)
+  const pageSlug = location.pathname.replace(/^\/agent\/?/, '')
+  const active = getAgentPage(pageSlug)
 
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [title, setTitle] = useState('')
   const [budget, setBudget] = useState('')
   const [fileName, setFileName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [accessDenied, setAccessDenied] = useState(false)
-
-  // Read the Sheets URL from the same localStorage key GoogleSheetsConnection uses
-  const sheetsUrl = loadGoogleSheetsConfig().webAppUrl
 
   async function loadProposals() {
     setLoading(true)
@@ -50,22 +72,6 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
       console.error('Load proposals error', e.message || e)
     } finally { setLoading(false) }
   }
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession()
-        const email = sessionData?.session?.user?.email ?? ''
-        if (email !== ADMIN_EMAIL) {
-          setAccessDenied(true)
-          return
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-    void init()
-  }, [])
 
   useEffect(() => {
     if (active !== 'proposals') return
@@ -91,37 +97,10 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
       if (error) throw error
       setProposals((s) => [data as Proposal, ...s])
       setTitle(''); setBudget(''); setFileName('')
-      await loadProposals()
     } catch (e: any) {
       console.error('Add proposal error', e.message || e)
       alert('Failed to add proposal')
     }
-  }
-
-  async function approveProposal(id: string) {
-    const proposal = proposals.find((item) => item.id === id)
-    if (!proposal) return
-
-    const result = await sendProposalApprovalWebhook(
-      proposal.id,
-      proposal.title,
-      proposal.budget,
-      proposal.submitted_by,
-      {
-        client: proposal.client,
-        location: proposal.location,
-        statusLabel: proposal.status_label,
-        submittedAt: proposal.submitted_at,
-      }
-    )
-
-    if (!result.success) {
-      alert(result.error || 'Failed to approve proposal')
-      return
-    }
-
-    setProposals((s) => s.map((p) => p.id === id ? { ...p, status: 'approved', approved_at: nowIso() } : p))
-    await loadProposals()
   }
 
   async function sendReminder(id: string) {
@@ -148,7 +127,6 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
         .single()
       if (error) throw error
       setProposals((s) => s.map(pp => pp.id === id ? (data as Proposal) : pp))
-      await loadProposals()
       alert('Reminder sent')
     } catch (e: any) {
       console.error('Reminder error', e.message || e)
@@ -162,16 +140,8 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
     return Date.now() - submitted > 72 * 3600 * 1000
   }
 
-  if (active === null) return <Navigate to="/admin/overview" replace />
+  if (active === null) return <Navigate to="/agent/overview" replace />
 
-  if (accessDenied) return (
-    <div style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ textAlign: 'center' }}>
-        <h2>Access Denied</h2>
-        <div>You are not authorized to view this page.</div>
-      </div>
-    </div>
-  )
 
   const handleLogout = () => {
     if (props?.onLogout) props.onLogout()
@@ -179,7 +149,7 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6' }}>
-      <AdminSidebar onLogout={handleLogout} />
+      <AgentSidebar onLogout={handleLogout} />
 
       <main style={{
         marginLeft: 280,
@@ -189,7 +159,22 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
         maxWidth: 1400,
       }}>
         {active === 'overview' && (
-          <OverviewPage sheetsWebAppUrl={sheetsUrl || undefined} />
+          <AgentExecutiveDashboard currentUserEmail={undefined} />
+        )}
+        {active === 'events' && (
+          <EventSubmission companyName={''} onBack={() => {}} />
+        )}
+        {active === 'recce' && (
+          <RecceForm companyName={''} onBack={() => {}} />
+        )}
+        {active === 'requisitions' && (
+          <RequisitionForm companyName={''} onBack={() => {}} />
+        )}
+        {active === 'completed' && (
+          <ActionContent action={'completed'} companyName={''} />
+        )}
+        {active === 'jobs' && (
+          <ActionContent action={'jobs'} companyName={''} />
         )}
         {active === 'proposals' && (
           <ProposalsPage
@@ -202,19 +187,21 @@ export function AdminDashboard(props?: { onLogout?: () => void }) {
             fileName={fileName}
             setFileName={setFileName}
             onAddProposal={addProposal}
-            onApprove={approveProposal}
             onSendReminder={sendReminder}
             isDelayed={isDelayed}
             pendingCount={proposals.filter((p) => p.status === 'pending').length}
           />
         )}
-        {active === 'settings' && <SettingsPage />}
+        {active === 'pay-requests' && (
+          <PayRequestPage />
+        )}
+        {/* {active === 'settings' && <SettingsPage />}
         {active === 'team' && <TeamPage />}
         {active === 'billing' && <BillingPage />}
-        {active === 'db-connections' && <DBConnections />}
+        {active === 'db-connections' && <DBConnections />} */}
       </main>
     </div>
   )
 }
 
-export default AdminDashboard
+export default AgentDashboard

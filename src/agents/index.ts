@@ -1,1 +1,1 @@
-export { ManagerDashboard, default } from './ManagerDashboard'
+export { AgentDashboard, default } from './AgentsDashboard'

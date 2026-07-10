@@ -1,22 +1,21 @@
+import { NavLink } from 'react-router-dom'
 import { FiLogOut, FiFileText, FiSettings, FiBarChart2 } from 'react-icons/fi'
 import { MdPeopleAlt } from 'react-icons/md'
 import { TbMoneybag } from 'react-icons/tb'
 import { FaDatabase } from 'react-icons/fa'
 
 interface AdminSidebarProps {
-  active: string
-  setActive: (page: string) => void
   onLogout: () => void
 }
 
-export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps) {
+export function AdminSidebar({ onLogout }: AdminSidebarProps) {
   const menuItems = [
-    { id: 'overview',        label: 'Overview',        icon: FiBarChart2  },  // ← new
-    { id: 'proposals',       label: 'Proposals',       icon: FiFileText   },
-    { id: 'settings',        label: 'Settings',        icon: FiSettings   },
-    { id: 'team',            label: 'Team',            icon: MdPeopleAlt  },
-    { id: 'billing',         label: 'Billing',         icon: TbMoneybag   },
-    { id: 'db-connections',  label: 'DB Connections',  icon: FaDatabase   },
+    { to: '/admin/overview',       label: 'Overview',       icon: FiBarChart2 },
+    { to: '/admin/proposals',      label: 'Proposals',      icon: FiFileText },
+    { to: '/admin/settings',       label: 'Settings',       icon: FiSettings },
+    { to: '/admin/team',           label: 'Team',           icon: MdPeopleAlt },
+    { to: '/admin/billing',        label: 'Billing',        icon: TbMoneybag },
+    { to: '/admin/db-connections', label: 'DB Connections', icon: FaDatabase },
   ]
 
   return (
@@ -56,41 +55,32 @@ export function AdminSidebar({ active, setActive, onLogout }: AdminSidebarProps)
         flexDirection: 'column',
         gap: 4,
       }}>
-        {menuItems.map(item => {
-          const Icon = item.icon
-          const isActive = active === item.id
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActive(item.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '11px 20px',
-                background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                border: 'none',
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
-                fontSize: 14,
-                fontWeight: isActive ? 700 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                borderLeft: `3px solid ${isActive ? '#fff' : 'transparent'}`,
-                textAlign: 'left',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <Icon size={17} />
-              <span>{item.label}</span>
-            </button>
-          )
-        })}
+        {menuItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              width: '100%',
+              padding: '11px 20px',
+              background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+              border: 'none',
+              color: isActive ? '#fff' : 'rgba(255,255,255,0.8)',
+              fontSize: 14,
+              fontWeight: isActive ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              borderLeft: `3px solid ${isActive ? '#fff' : 'transparent'}`,
+              textAlign: 'left',
+              textDecoration: 'none',
+            })}
+          >
+            <item.icon size={17} />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       {/* Logout */}

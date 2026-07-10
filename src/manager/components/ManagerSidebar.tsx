@@ -1,19 +1,25 @@
 import { NavLink } from 'react-router-dom'
-import type { ReactNode } from 'react'
-import { FiGrid, FiDollarSign, FiClipboard, FiSettings, FiLogOut } from 'react-icons/fi'
+import { FiCalendar, FiLogOut, FiStar, FiLayers, FiUsers, FiDollarSign, FiCheckSquare } from 'react-icons/fi'
+import { TbReportSearch } from 'react-icons/tb'
+import { GiOnTarget } from 'react-icons/gi'
 
-interface FinanceSidebarProps {
+interface ManagerSidebarProps {
   onLogout: () => void
+  pendingCount: number
 }
 
-const MENU_ITEMS: Array<{ to: string; label: string; icon: (props: { size?: number }) => ReactNode }> = [
-  { to: '/finance/overview', label: 'Overview', icon: FiGrid },
-  { to: '/finance/pay-requests', label: 'Pay Requests', icon: FiDollarSign },
-  { to: '/finance/requisitions', label: 'Requisitions', icon: FiClipboard },
-  { to: '/finance/settings', label: 'Settings', icon: FiSettings },
-]
+export function ManagerSidebar({ onLogout, pendingCount }: ManagerSidebarProps) {
+  const menuItems = [
+    { to: '/manager/overview',   label: 'Overview',   icon: FiStar },
+    { to: '/manager/modules',    label: 'Modules',    icon: FiLayers },
+    { to: '/manager/events',     label: 'Events',     icon: FiCalendar },
+    { to: '/manager/team',       label: 'Team',       icon: FiUsers },
+    { to: '/manager/proposals',  label: 'Proposals',  icon: FiCheckSquare },
+    { to: '/manager/pay-request',label: 'Pay Request',icon: FiDollarSign },
+    { to: '/manager/reports',    label: 'Reports',    icon: TbReportSearch },
+    { to: '/manager/targets',    label: 'Targets',    icon: GiOnTarget },
+  ]
 
-export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
   return (
     <aside style={{
       width: 280,
@@ -25,9 +31,12 @@ export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
       height: '100vh',
       boxShadow: '0 4px 12px rgba(36, 138, 253, 0.15)',
     }}>
-      <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.15)' }}>
+      <div style={{
+        padding: '24px 20px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+      }}>
         <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.65, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-          Finance Command Center
+          BTL Command Center
         </div>
         <h2 style={{
           fontSize: 18,
@@ -35,7 +44,7 @@ export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
           margin: 0,
           fontFamily: 'Georgia, serif',
         }}>
-          Finance Team
+          Agents Portal
         </h2>
       </div>
 
@@ -46,7 +55,7 @@ export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
         flexDirection: 'column',
         gap: 4,
       }}>
-        {MENU_ITEMS.map((item) => (
+        {menuItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -69,7 +78,12 @@ export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
             })}
           >
             <item.icon size={17} />
-            <span>{item.label}</span>
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {(item.to === '/manager/pay-request' || item.to === '/manager/proposals') && pendingCount > 0 && (
+              <span style={{ marginLeft: 'auto', background: '#ef4444', color: '#fff', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
+                {pendingCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -99,7 +113,7 @@ export function FinanceSidebar({ onLogout }: FinanceSidebarProps) {
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)' }}
         >
           <FiLogOut size={17} />
-          <span>Sign Out</span>
+          <span>Logout</span>
         </button>
       </div>
     </aside>
